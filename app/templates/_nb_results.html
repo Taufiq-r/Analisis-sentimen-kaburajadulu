@@ -1,0 +1,41 @@
+{% if nb_report %}
+<div class="results-section">
+    <div class="metrics-overview">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h6>Akurasi</h6>
+                    <p>{{ "%.2f"|format(nb_report.accuracy * 100) }}%</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h6>Presisi</h6>
+                    <p>{{ "%.2f"|format(nb_report.precision_weighted * 100) }}%</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h6>Recall</h6>
+                    <p>{{ "%.2f"|format(nb_report.recall_weighted * 100) }}%</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h6>F1-Score</h6>
+                    <p>{{ "%.2f"|format(nb_report.f1_weighted * 100) }}%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="data-distribution mt-4">
+        <h6>Distribusi Data</h6>
+        <ul class="list-unstyled">
+            <li>Total Data Latih: {{ nb_report.total_train }}</li>
+            <li>Total Data Uji: {{ nb_report.total_test }}</li>
+            <li>Rasio Data Uji: {{ nb_report.test_ratio * 100 }}%</li>
+        </ul>
+    </div>
+</div>
+{% endif %}

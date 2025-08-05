@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{#
+classification_svm.html
+---------------------------------------------
+Halaman hasil klasifikasi SVM.
+---------------------------------------------
+#}
+{% block content %}
+<div class="container-fluid d-flex justify-content-center align-items-center page-container">
+    <div class="content-wrapper content-wrapper-wide">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}" class="breadcrumb-dashboard-link"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Klasifikasi SVM</li>
+            </ol>
+        </nav>
+
+        <h2 class="mt-3 mb-4 text-center font-weight-bold">
+            <i class="fas fa-cogs text-success mr-2"></i>Klasifikasi Support Vector Machine (SVM)
+        </h2>
+        <p class="mb-4 text-center text-secondary lead">
+            Rasio data uji yang dipilih: 
+            <span class="font-weight-bold text-success">{% if test_ratio %}{{ (test_ratio|float * 100)|round(1) }}%{% else %}belum dipilih{% endif %}</span>
+        </p>
+
+        {% if not test_ratio %}
+        <div class="alert alert-custom-info text-center mb-4 alert-maxwidth">
+            <p class="mb-2">Silakan pilih rasio data uji terlebih dahulu untuk melanjutkan klasifikasi.</p>
+            <a href="{{ url_for('classification_tasks.select_test_ratio') }}" class="btn btn-info">Pilih Rasio Data Uji</a>
+        </div>
+        {% else %}
+        <form id="klasifikasiSvmForm" method="post" action="{{ url_for('svm_classification_tasks.classification_svm') }}" class="text-center mb-4">
+            <input type="hidden" name="test_ratio" value="{{ test_ratio }}">
+            <input type="hidden" name="start_classification" value="true">
+            <button type="submit" class="btn btn-custom btn-lg" id="submitButton">
+                <span class="normal-text">
+                    <i class="fas fa-play-circle mr-2"></i>Mulai Klasifikasi
+                </span>
+                <span class="loading-text d-none">
+                    <span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                    Sedang memproses...
+                </span>
+            </button>
+        </form>
+        <div id="loadingOverlay" class="loading-overlay d-none">
+            <div class="loading-content">
+                <div class="spinner-border text-success mb-3 spinner-lg" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <h5 class="mb-2">Sedang Memproses</h5>
+                <p class="mb-0 text-muted">Mohon tunggu, sedang melakukan klasifikasi menggunakan SVM...</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="text-center mb-4">
+            <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#resetSvmClassificationModal"
+                    {% if not report_otomatis and not report_pakar %}disabled title="Belum ada hasil klasifikasi untuk direset"{% endif %}>
+                <i class="fas fa-trash-alt mr-2"></i>Reset Klasifikasi Sebelumnya
+            </button>
+        </div>
+
+        {% if not report_otomatis and not report_pakar %}
+            <div class="alert alert-info text-center mb-3">
+                Belum ada data laporan klasifikasi untuk SVM. <br>
+                Silakan jalankan proses klasifikasi untuk melihat laporan di sini.
+            </div>
+        {% else %}
+            <ul class="nav nav-tabs nav-fill mb-4" id="classificationTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active" id="otomatis-tab-svm" data-toggle="tab" href="#otomatis-svm" role="tab" aria-controls="otomatis-svm" aria-selected="true">
+                        <i class="fas fa-robot mr-2"></i>Hasil Label Otomatis
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="pakar-tab-svm" data-toggle="tab" href="#pakar-svm" role="tab" aria-controls="pakar-svm" aria-selected="false">
+                        <i class="fas fa-user-check mr-2"></i>Hasil Label Pakar
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="classificationTabContentSvm">
+                {% for source in ['otomatis', 'pakar'] %}
+                {% set report = report_otomatis if source == 'otomatis' else report_pakar %}
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ source }}-svm" role="tabpanel" aria-labelledby="{{ source }}-tab-svm">
+                    {% if report %}
+                        <div class="mb-3 custom-card p-3">
+                            <h5 class="card-title mb-4 text-center"><i class="fas fa-chart-bar text-primary mr-2"></i>Laporan Klasifikasi SVM (Label {{ source|title }})</h5>
+                            <div class="info-grid mb-3">
+                                <div class="info-item">
+                                    <div class="card-icon mb-2"><i class="fas fa-user-graduate text-success"></i></div>
+                                    <div>
+                                        <div class="info-label">Total Data Latih</div>
+                                        <div class="info-value text-success">{{ report.data_stats.total_train }}</div>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="card-icon mb-2"><i class="fas fa-vial text-warning"></i></div>
+                                    <div>
+                                        <div class="info-label">Total Data Uji</div>
+                                        <div class="info-value text-warning">{{ report.data_stats.total_test }}</div>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="card-icon mb-2"><i class="fas fa-percentage text-info"></i></div>
+                                    <div>
+                                        <div class="info-label">Rasio Data Uji</div>
+                                        <div class="info-value text-info">{{ (report.data_stats.test_ratio * 100)|round(1) }}%</div>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="card-icon mb-2"><i class="fas fa-bullseye text-success"></i></div>
+                                    <div>
+                                        <div class="info-label">Akurasi</div>
+                                        <div class="info-value text-success">{{ (report.accuracy * 100)|round(2) }}%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning text-center">Laporan untuk sumber label '{{ source|title }}' tidak ditemukan.</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="modal fade" id="resetSvmClassificationModal" tabindex="-1" aria-labelledby="resetSvmClassificationModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header warning-header">
+                        <h5 class="modal-title" id="resetSvmClassificationModalLabel">Konfirmasi Reset Hasil Klasifikasi SVM</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">Apakah Anda yakin ingin mereset semua hasil klasifikasi <b>SVM</b>?</p>
+                        <ul class="text-left mb-3">
+                            <li>Semua data di tabel <b>hasil klasifikasi SVM</b> akan dihapus.</li>
+                            <li>Laporan akurasi, presisi, recall, dan F1-score akan hilang.</li>
+                            <li>Anda perlu menjalankan ulang klasifikasi untuk mendapatkan hasil baru.</li>
+                        </ul>
+                        <p class="text-danger mt-2"><strong>Peringatan:</strong> Tindakan ini tidak dapat dibatalkan!</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                        <form method="post" action="{{ url_for('svm_classification_tasks.reset_svm_classification') }}" class="form-display-inline">
+                            <button type="submit" class="btn btn-danger">Ya, Reset Hasil Klasifikasi</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('klasifikasiSvmForm');
+    var submitButton = document.getElementById('submitButton');
+    var loadingOverlay = document.getElementById('loadingOverlay');
+
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Disable the button and show loading state
+            if (submitButton) {
+                submitButton.disabled = true;
+                var normalText = submitButton.querySelector('.normal-text');
+                var loadingText = submitButton.querySelector('.loading-text');
+                if (normalText) normalText.classList.add('d-none');
+                if (loadingText) loadingText.classList.remove('d-none');
+            }
+            
+            // Show loading overlay
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('d-none');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

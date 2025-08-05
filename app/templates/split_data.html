@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{#
+test_ratio_selection.html
+---------------------------------------------
+Halaman untuk memilih rasio data uji yang akan digunakan untuk pembagian data.
+Menampilkan informasi tentang pembagian data aktif untuk kedua sumber label.
+---------------------------------------------
+#}
+{% block content %}
+<div class="container-fluid d-flex justify-content-center align-items-center page-container">
+    <div class="content-wrapper">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}" class="breadcrumb-dashboard-link"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Pembagian Data</li>
+            </ol>
+        </nav>
+
+        <h2 class="mt-3 mb-4 text-center font-weight-bold">
+            <i class="fas fa-random text-info mr-2"></i>Pembagian Data
+        </h2>
+        <p class="mb-4 text-center text-secondary lead">
+            <i class="fas fa-sliders-h mr-1 text-primary"></i>
+            Pilih rasio untuk membagi dataset menjadi data latih dan data uji.
+        </p>
+
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card mb-4 shadow border-0 rounded-lg">
+                    <div class="card-body">
+                        <h5 class="card-title text-center mb-4"><i class="fas fa-database text-info mr-2"></i>Informasi Data</h5>
+                        <p class="text-muted text-center small mb-3">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Data berlabel mencakup data yang memiliki label otomatis atau label dari pakar
+                        </p>
+                        <div class="info-grid mb-3">
+                            <div class="info-item">
+                                <div class="card-icon mb-2">
+                                    <i class="fas fa-tags text-success"></i>
+                                </div>
+                                <div>
+                                    <div class="info-label">Total Data Label Otomatis</div>
+                                    <div class="info-value text-success">{{ total_otomatis }}</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="card-icon mb-2">
+                                    <i class="fas fa-user-check text-primary"></i>
+                                </div>
+                                <div>
+                                    <div class="info-label">Total Data Label Pakar</div>
+                                    <div class="info-value text-primary">{{ total_pakar }}</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="card-icon mb-2">
+                                    <i class="fas fa-check-circle text-info"></i>
+                                </div>
+                                <div>
+                                    <div class="info-label">Total Data Berlabel</div>
+                                    <div class="info-value text-info">{{ total_labeled }}</div>
+                                    <div class="small text-muted">(Label Otomatis atau Pakar)</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="card-icon mb-2">
+                                    <i class="fas fa-question-circle text-secondary"></i>
+                                </div>
+                                <div>
+                                    <div class="info-label">Total Data Belum Berlabel</div>
+                                    <div class="info-value text-secondary">{{ total_unlabeled }}</div>
+                                    <div class="small text-muted">(Belum Ada Label)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row justify-content-center mb-4">
+                            <div class="col-md-10">
+                                <div class="card shadow border-0 rounded-lg">
+                                    <div class="card-body">
+                                        <h5 class="card-title text-center mb-4"><i class="fas fa-sliders-h text-info mr-2"></i>Atur Pembagian Data</h5>
+                                        <form id="testRatioForm" method="post" action="{{ url_for('classification_tasks.select_test_ratio') }}" class="ratio-selection-form">
+                                            <div class="form-row justify-content-center">
+                                                <div class="form-group col-md-8 mb-4">
+                                                    <label for="test_ratio" class="font-weight-bold mb-2 h5">
+                                                        <i class="fas fa-percentage text-info mr-2"></i>Rasio Data Uji
+                                                    </label>
+                                                    <select name="test_ratio" id="test_ratio" class="form-control form-control-lg">
+                                                        <option value="" selected disabled>Pilih Rasio</option>
+                                                        {% for i in [2, 4, 6] %}
+                                                            <option value="{{ '%.1f' % (i/10) }}" {% if active_splits.get('otomatis') and active_splits.get('otomatis').test_ratio == i/10 %}selected{% endif %}>{{ i * 10 }}%</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <div class="alert alert-info mt-3 mb-0 py-2 px-3" style="background:rgba(23,162,184,0.07);border-left:5px solid #17a2b8;">
+                                                        <i class="fas fa-info-circle mr-1 text-info"></i>
+                                                        Rasio ini akan digunakan untuk membagi dataset menjadi data latih dan data uji untuk kedua sumber label (Otomatis & Pakar).
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="text-center">
+                                                <button type="submit" class="btn btn-info btn-lg px-5" id="submitButton">
+                                                    <span class="normal-text">
+                                                        <i class="fas fa-random mr-2"></i>Mulai Pembagian Data
+                                                    </span>
+                                                    <span class="loading-text d-none">
+                                                        <span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                                                        Sedang memproses...
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h4 class="text-center mb-4"><i class="fas fa-balance-scale text-info mr-2"></i>Pembagian Data Aktif</h4>
+
+                        {% if active_splits %}
+
+                            {% if active_splits.otomatis %}
+                            <div class="mb-4"> <div class="card">
+                                    <div class="card-header bg-success text-white font-weight-bold">
+                                        <i class="fas fa-tags mr-2"></i>Hasil untuk Label Otomatis
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="info-grid">
+                                            <div class="info-item">
+                                                <div class="card-icon mb-2">
+                                                    <i class="fas fa-percentage text-info"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="info-label">Rasio Uji</div>
+                                                    <div class="info-value text-info">{{ active_splits.otomatis.test_ratio * 100 | round(1) }}%</div>
+                                                </div>
+                                            </div>
+                                            <div class="info-item">
+                                                <div class="card-icon mb-2">
+                                                    <i class="fas fa-user-graduate text-success"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="info-label">Data Latih</div>
+                                                    <div class="info-value text-success">{{ active_splits.otomatis.train_size }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="info-item">
+                                                <div class="card-icon mb-2">
+                                                    <i class="fas fa-vial text-warning"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="info-label">Data Uji</div>
+                                                    <div class="info-value text-warning">{{ active_splits.otomatis.test_size }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if active_splits.pakar %}
+                            <div class="mb-3">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white font-weight-bold">
+                                        <i class="fas fa-user-check mr-2"></i>Hasil untuk Label Pakar
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="info-grid">
+                                            <div class="info-item">
+                                                <div class="card-icon mb-2">
+                                                    <i class="fas fa-percentage text-info"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="info-label">Rasio Uji</div>
+                                                    <div class="info-value text-info">{{ active_splits.pakar.test_ratio * 100 | round(1) }}%</div>
+                                                </div>
+                                            </div>
+                                            <div class="info-item">
+                                                <div class="card-icon mb-2">
+                                                    <i class="fas fa-user-graduate text-success"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="info-label">Data Latih</div>
+                                                    <div class="info-value text-success">{{ active_splits.pakar.train_size }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="info-item">
+                                                <div class="card-icon mb-2">
+                                                    <i class="fas fa-vial text-warning"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="info-label">Data Uji</div>
+                                                    <div class="info-value text-warning">{{ active_splits.pakar.test_size }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                        {% else %}
+                            <div class="alert alert-light text-center" role="alert">
+                                <i class="fas fa-info-circle mr-1"></i> Belum ada pembagian data aktif. Silakan pilih rasio dan mulai proses pembagian.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row justify-content-center mt-4">
+                    <div class="col-md-10">
+                        <div class="text-center mb-4">
+                            <h5 class="mb-3">Pilih metode klasifikasi:</h5>
+                            <div class="btn-group classification-method-group mb-4" role="group">
+                                <a href="{{ url_for('nb_classification_tasks.classification_nb') }}" class="btn btn-primary btn-lg {% if not active_splits %}disabled" tabindex="-1" aria-disabled="true{% endif %}">
+                                    <i class="fas fa-brain mr-2"></i>Naive Bayes
+                                </a>
+                                <a href="{{ url_for('svm_classification_tasks.classification_svm') }}" class="btn btn-success btn-lg {% if not active_splits %}disabled" tabindex="-1" aria-disabled="true{% endif %}">
+                                    <i class="fas fa-cogs mr-2"></i>SVM
+                                </a>
+                            </div>
+                            <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#resetSplitDataModal" 
+                                    {% if not active_splits %}disabled title="Belum ada pembagian data untuk direset"{% endif %}>
+                                <i class="fas fa-trash mr-2"></i>Reset Semua Pembagian Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="resetSplitDataModal" tabindex="-1" aria-labelledby="resetSplitDataModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header warning-header">
+                <h5 class="modal-title" id="resetSplitDataModalLabel">Konfirmasi Reset Pembagian Data</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Apakah Anda yakin ingin mereset <b>semua pembagian data</b>? Tindakan ini akan:</p>
+                <ul class="text-left mb-3">
+                    <li>Menghapus seluruh data pada tabel <b>data latih</b> dan <b>data uji</b>.</li>
+                    <li>Rasio pembagian data yang aktif akan dihapus.</li>
+                    <li>Anda perlu melakukan pembagian data ulang sebelum bisa melanjutkan ke tahap klasifikasi.</li>
+                </ul>
+                <p class="text-info mb-0"><i class="fas fa-info-circle mr-1"></i>Tindakan ini <b>tidak akan</b> menghapus data preprocessing atau hasil pelabelan Anda.</p>
+                <p class="text-danger mt-2"><strong>Peringatan:</strong> Tindakan ini tidak dapat dibatalkan!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                <form method="post" action="{{ url_for('classification_tasks.reset_all_test_ratios') }}" class="form-display-inline">
+                    <button type="submit" class="btn btn-danger">Ya, Reset Pembagian Data</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Loading overlay - Diposisikan di luar content-wrapper agar bisa menutupi seluruh halaman #}
+<div id="loadingOverlay" class="loading-overlay d-none">
+    <div class="loading-content">
+        <div class="spinner-border text-info mb-3 spinner-lg" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+        <h5 class="mb-2">Sedang Memproses</h5>
+        <p class="mb-0 text-muted">Mohon tunggu, sedang melakukan pembagian data...</p>
+        {# Teks diubah agar tidak lagi menyebutkan TF-IDF #}
+    </div>
+</div>
+
+<!-- Form Submission Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('testRatioForm');
+    var submitButton = document.getElementById('submitButton');
+    var loadingOverlay = document.getElementById('loadingOverlay');
+
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            var testRatio = document.getElementById('test_ratio').value;
+            if (!testRatio) {
+                e.preventDefault();
+                // Alert dihapus, validasi sekarang ditangani oleh server (Flask flash messages)
+                return false;
+            }
+
+            // Show loading state
+            if (submitButton) {
+                var normalText = submitButton.querySelector('.normal-text');
+                var loadingText = submitButton.querySelector('.loading-text');
+                if (normalText && loadingText) {
+                    submitButton.disabled = true;
+                    normalText.classList.add('d-none');
+                    loadingText.classList.remove('d-none');
+                }
+            }
+
+            // Show loading overlay
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('d-none');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

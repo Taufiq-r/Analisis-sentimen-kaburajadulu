@@ -1,0 +1,480 @@
+{% extends 'base.html' %}
+{#
+labeling.html
+---------------------------------------------
+Halaman pelabelan semi otomatis (pakar + lexicon).
+---------------------------------------------
+#}
+{% block content %}
+<div class="container-fluid d-flex justify-content-center align-items-center page-container">
+    <div class="content-wrapper content-wrapper-wide">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}" class="breadcrumb-dashboard-link"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Label</li>
+            </ol>
+        </nav>
+        <h2 class="mt-3 mb-2 text-center font-weight-bold">
+            <i class="text-info mr-2"></i>Pelabelan Otomatis atau Pakar
+        </h2>
+        <p class="mb-4 text-center text-secondary lead">
+            <i class="fas fa-magic mr-1 text-primary"></i>
+            Lakukan pelabelan otomatis berbasis lexicon pada data yang belum berlabel, kemudian sesuaikan label secara manual jika diperlukan.
+        </p>
+
+        {# Card Upload Dataset Label Pakar #}
+        <div class="row mb-4 justify-content-center">
+            <div class="col-md-8 col-lg-7"> {# Kolom lebih lebar untuk form upload, konsisten dengan input_data.html #}
+                <div class="custom-card mb-4">
+                    <div class="card-header bg-primary text-white d-flex align-items-center">
+                        <i class="fas fa-file-upload fa-lg mr-2"></i>
+                        <h5 class="mb-0">Upload Dataset Label Pakar</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('labeling.upload_expert_labels') }}" method="post" enctype="multipart/form-data" id="expertLabelForm" class="d-flex flex-column flex-md-row align-items-center justify-content-center gap-3">
+                            <div class="form-group mb-2 mb-md-0 mr-md-3 flex-grow-1 w-100">
+                                <label for="expertDataFile" class="font-weight-bold">Pilih file CSV:</label>
+                                <input type="file" class="form-control-file" id="expertDataFile" name="file" accept=".csv" required>
+                            </div>
+                            <button type="submit" class="btn btn-upload btn-lg mt-3 mt-md-0" id="uploadExpertButton">
+                                <span class="normal-text">
+                                    <i class="fas fa-upload mr-2"></i>Upload Data Label Pakar
+                                </span>
+                                <span class="loading-text d-none">
+                                    <span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                                    Mengupload...
+                                </span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loadingOverlay" class="loading-overlay d-none">
+            <div class="loading-content">
+                <div class="spinner-border text-info mb-3 spinner-lg" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <h5 class="mb-2">Sedang Memproses</h5>
+                <p class="mb-0 text-muted">Mohon tunggu, sedang melakukan pelabelan otomatis...</p>
+            </div>
+        </div>
+
+        <div class="text-center mb-4 d-flex justify-content-center align-items-center flex-wrap gap-2">
+            <form id="labelForm" method="post" action="{{ url_for('labeling.show_or_perform_label') }}" class="form-display-inline">
+                <input type="hidden" name="page" value="{{ request.args.get('page', 1) }}">
+                <input type="hidden" name="per_page" value="{{ request.args.get('per_page', per_page) }}">
+                {% if search_query %}<input type="hidden" name="search" value="{{ search_query }}">{% endif %}
+                <button type="submit" class="btn btn-custom btn-lg px-5" id="submitButton">
+                    <span class="normal-text">
+                        <i class="fas fa-tags mr-2"></i>Lakukan Pelabelan Otomatis
+                    </span>
+                    <span class="loading-text d-none">
+                        <span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                        Sedang memproses...
+                    </span>
+                </button>
+            </form>
+            <button type="button" class="btn btn-secondary btn-lg px-5" data-toggle="modal" data-target="#resetLabelModal" 
+                     {% if total_positif_otomatis + total_negatif_otomatis + total_netral_otomatis == 0 %}disabled title="Belum ada label otomatis untuk direset"{% endif %}>
+                <i class="fas fa-eraser mr-2"></i>Reset Label Otomatis
+            </button>
+            <button type="button" class="btn btn-danger btn-lg px-5 ml-2" data-toggle="modal" data-target="#resetDataPakarModal"
+                    {% if not total_pakar_data %}disabled title="Tidak ada data pakar untuk direset"{% endif %}>
+                <i class="fas fa-user-slash mr-2"></i>Reset Data Pakar
+            </button>
+            
+        </div>
+
+        <div class="modal fade" id="resetDataPakarModal" tabindex="-1" aria-labelledby="resetDataPakarModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header warning-header">
+                        <h5 class="modal-title" id="resetDataPakarModalLabel">Konfirmasi Reset Data Pakar</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">Apakah Anda yakin ingin mereset <b>semua data pakar</b>? Tindakan ini akan:</p>
+                        <ul class="text-left mb-3">
+                            <li>Menghapus seluruh data pada tabel <b>data_pakar</b></li>
+                            <li>Label pakar pada tabel pelabelan akan hilang</li>
+                            <li>Tidak memengaruhi label manual dan hasil klasifikasi</li>
+                        </ul>
+                        <p class="text-danger mb-0"><strong>Peringatan:</strong> Tindakan ini tidak dapat dibatalkan!</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                        <form method="post" action="{{ url_for('labeling.reset_data_pakar') }}" class="form-display-inline">
+                            <button type="submit" class="btn btn-danger">Ya, Reset Data Pakar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal fade" id="resetLabelModal" tabindex="-1" aria-labelledby="resetLabelModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header warning-header">
+                        <h5 class="modal-title" id="resetLabelModalLabel">Konfirmasi Reset Label Otomatis</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">Apakah Anda yakin ingin mereset semua label otomatis? Tindakan ini akan:</p>
+                        <ul class="text-left mb-3">
+                            <li>Menghapus semua label yang dilakukan secara otomatis</li>
+                            <li>Tidak mempengaruhi label dari data pakar</li>
+                            <li>Mempertahankan hasil klasifikasi dan visualisasi</li>
+                        </ul>
+                        <p class="text-warning mb-0"><i class="fas fa-info-circle mr-1"></i>Label dari data pakar akan tetap tersimpan.</p>
+                        <p class="text-danger mb-0"><strong>Peringatan:</strong> Tindakan ini tidak dapat dibatalkan!</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                        <form method="post" action="{{ url_for('labeling.reset_all_otomatis_labels') }}" class="form-display-inline">
+                            <button type="submit" class="btn btn-danger">Ya, Reset Label Otomatis</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="noPreprocessingModal" tabindex="-1" aria-labelledby="noPreprocessingModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header warning-header">
+                        <h5 class="modal-title" id="noPreprocessingModalLabel">Belum Ada Data Preprocessing</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        Anda harus memiliki data hasil preprocessing (dengan text_stem) terlebih dahulu sebelum melakukan pelabelan.<br>
+                        <a href="{{ url_for('preprocessing.show_preprocessing_results') }}" class="btn btn-link font-weight-bold mt-2">Jalankan Preprocessing Sekarang</a>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {# --- AWAL BAGIAN STATISTIK  --- #}
+        <div class="row mb-4 justify-content-center">
+            <div class="col-lg-10">
+                <div class="custom-card p-4">
+                    <h4 class="text-center font-weight-bold mb-4">Ringkasan Statistik Label</h4>
+                    <div class="row">
+                                                
+                        {# Kolom Statistik Lexicon Otomatis #}
+                        <div class="col-lg-6">
+                            <h5 class="text-muted text-center mb-3 mt-4 mt-lg-0">
+                                <i class="fas fa-robot mr-2"></i>Berdasarkan Lexicon
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="card stat-card h-100 shadow-sm">
+                                        <div class="card-body d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle text-muted text-uppercase">Positif</h6>
+                                                <h4 class="font-weight-bold mb-0">{{ total_positif_lexicon|default(0) }}</h4>
+                                            </div>
+                                            <i class="fas fa-thumbs-up fa-3x text-success-light"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card stat-card h-100 shadow-sm">
+                                        <div class="card-body d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle text-muted text-uppercase">Negatif</h6>
+                                                <h4 class="font-weight-bold mb-0">{{ total_negatif_lexicon|default(0) }}</h4>
+                                            </div>
+                                            <i class="fas fa-thumbs-down fa-3x text-danger-light"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card stat-card h-100 shadow-sm">
+                                        <div class="card-body d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle text-muted text-uppercase">Netral</h6>
+                                                <h4 class="font-weight-bold mb-0">{{ total_netral_lexicon|default(0) }}</h4>
+                                            </div>
+                                            <i class="fas fa-minus-circle fa-3x text-secondary-light"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        {# Kolom Statistik Data Pakar #}
+                        <div class="col-lg-6 border-right-lg">
+                            <h5 class="text-muted text-center mb-3">
+                                <i class="fas fa-user-check mr-2"></i>Berdasarkan Pakar
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="card stat-card h-100 shadow-sm">
+                                        <div class="card-body d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle text-muted text-uppercase">Positif</h6>
+                                                <h4 class="font-weight-bold mb-0">{{ total_positif_pakar|default(0) }}</h4>
+                                            </div>
+                                            <i class="fas fa-thumbs-up fa-3x text-success-light"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card stat-card h-100 shadow-sm">
+                                        <div class="card-body d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle text-muted text-uppercase">Negatif</h6>
+                                                <h4 class="font-weight-bold mb-0">{{ total_negatif_pakar|default(0) }}</h4>
+                                            </div>
+                                            <i class="fas fa-thumbs-down fa-3x text-danger-light"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card stat-card h-100 shadow-sm">
+                                        <div class="card-body d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle text-muted text-uppercase">Netral</h6>
+                                                <h4 class="font-weight-bold mb-0">{{ total_netral_pakar|default(0) }}</h4>
+                                            </div>
+                                            <i class="fas fa-minus-circle fa-3x text-secondary-light"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {# --- AKHIR BAGIAN STATISTIK BARU --- #}
+
+        {# Data Siap Dilabel Card #}
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-10">
+                <div class="custom-card text-center">
+                    <div class="card-body">
+                        <h4 class="card-title font-weight-bold text-primary">Statistik Data</h4>
+                        <div class="row mt-4">
+                            <div class="col-md-4">
+                                <h5 class="text-secondary">Total Data Preprocessing</h5>
+                                <div class="total-data-highlight mb-2">{{ total_data_for_labeling|default(0) }}</div>
+                                <p class="text-muted small">(Data dengan text_stem)</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h5 class="text-info">Total Data Label Otomatis</h5>
+                                <div class="total-data-highlight mb-2">{{ total_positif_otomatis + total_negatif_otomatis + total_netral_otomatis }}</div>
+                                <p class="text-muted small">(Data dengan label otomatis)</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h5 class="text-success">Total Data Label Pakar</h5>
+                                <div class="total-data-highlight mb-2">{{ total_pakar_data }}</div>
+                                <p class="text-muted small">(Data dengan label pakar)</p>
+                            </div>
+                        </div>
+                        {% if total_data_for_labeling == 0 %}
+                            <div class="alert alert-warning mt-3">Belum ada data hasil preprocessing yang siap dilabeli.<br>Silakan jalankan preprocessing terlebih dahulu.</div>
+                        {% elif total_unlabeled > 0 %}
+                            <p class="text-warning mt-3">{{ total_unlabeled }} data belum memiliki label otomatis</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap flex-md-nowrap justify-content-between align-items-center mb-3 dataset-controls">
+            <form action="{{ url_for('labeling.show_or_perform_label') }}" method="GET" class="form-inline search-controls mb-2 mb-md-0">
+                <input type="hidden" name="show_stats" value="{{ show_stats }}">
+                <input type="text" name="search" value="{{ search_query|default('') }}" class="form-control mr-2 search-input" placeholder="Cari data...">
+                <button type="submit" class="btn btn-custom">Cari</button>
+                {% if search_query %}
+                <a href="{{ url_for('labeling.show_or_perform_label', show_stats=show_stats, per_page=per_page) }}" class="btn btn-secondary ml-2">Reset Cari</a>
+                {% endif %}
+            </form>
+            <form action="{{ url_for('labeling.show_or_perform_label') }}" method="GET" class="form-inline per-page-control">
+                <input type="hidden" name="show_stats" value="{{ show_stats }}">
+                {% if search_query %}<input type="hidden" name="search" value="{{ search_query }}">{% endif %}
+                <label for="per_page" class="mr-2 font-weight-bold">Tampilkan</label>
+                <select name="per_page" id="per_page" onchange="this.form.submit()" class="form-control">
+                    <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                    <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                </select>
+            </form>
+        </div>
+                
+        <h4 class="mt-4 text-center">Tabel Data Pelabelan</h4>
+        <div class="table-scroll-container">
+            <table class="table table-striped table-hover table-bordered text-center labeling-table mb-0">
+                <thead>
+                    <tr>
+                        <th class="text-center">ID</th>
+                        <th class="text-center">Text Clean</th>
+                        <th class="text-center">Label Pakar</th>
+                        <th class="text-center">Label Otomatis</th>
+                        <th class="text-center">Edit Label</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if data_pagination and results_for_table %}
+                        {% for row in results_for_table %}
+                        <tr>
+                            <td class="text-center">{{ data_pagination.first + loop.index0 if data_pagination.first is defined else (data_pagination.page - 1) * data_pagination.per_page + loop.index }}</td>
+                            <td class="clean-text-cell">{{ row.text_clean if row.text_clean else '-' }}</td>
+                            <td class="text-center align-middle">
+                                <span class="badge px-3 py-2 {% if row.label_pakar == 'positif' %}polarity-positif{% elif row.label_pakar == 'negatif' %}polarity-negatif{% elif row.label_pakar == 'netral' %}polarity-netral{% else %}bg-light{% endif %}">
+                                    {{ row.label_pakar|title if row.label_pakar else '- Belum Ada -' }}
+                                </span>
+                            </td>
+                            <td class="text-center align-middle">
+                                <span class="badge px-3 py-2 {% if row.label_otomatis == 'positif' %}polarity-positif{% elif row.label_otomatis == 'negatif' %}polarity-negatif{% elif row.label_otomatis == 'netral' %}polarity-netral{% else %}bg-light{% endif %}">
+                                    {{ row.label_otomatis|title if row.label_otomatis else '- Belum Dilabeli -' }}
+                                </span>
+                            </td>
+                            <td class="text-center align-middle">
+                                <form method="post" action="{{ url_for('labeling.edit_manual_label') }}" class="form-display-inline">
+                                    <input type="hidden" name="row_id" value="{{ row.id }}">
+                                    <input type="hidden" name="current_page" value="{{ data_pagination.page }}">
+                                    <input type="hidden" name="current_per_page" value="{{ data_pagination.per_page }}">
+                                    <input type="hidden" name="current_search" value="{{ search_query|default('') }}">
+                                    <input type="hidden" name="current_show_stats" value="{{ show_stats|default('0') }}">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <select name="new_label" class="form-control form-control-sm mr-2 label-select" required>
+                                            <option value="" {% if not row.label_otomatis %}selected{% endif %} disabled>Pilih Label</option>
+                                            <option value="positif" {% if row.label_otomatis == 'positif' %}selected{% endif %}>Positif</option>
+                                            <option value="negatif" {% if row.label_otomatis == 'negatif' %}selected{% endif %}>Negatif</option>
+                                            <option value="netral" {% if row.label_otomatis == 'netral' %}selected{% endif %}>Netral</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                {% if total_data_for_labeling == 0 %}
+                                    Tidak ada data hasil preprocessing yang siap untuk dilabeli. Silakan jalankan preprocessing terlebih dahulu.
+                                {% else %}
+                                    Tidak ada data yang cocok dengan filter pencarian Anda atau belum ada data untuk ditampilkan.
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        {% if data_pagination and data_pagination.pages > 1 %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mt-4">
+                {% if data_pagination.has_prev %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('labeling.show_or_perform_label', page=data_pagination.prev_num, per_page=per_page, search=search_query, show_stats=show_stats) }}">&laquo;</a></li>
+                {% else %}<li class="page-item disabled"><span class="page-link">&laquo;</span></li>{% endif %}
+                
+                {% for page_num_iter in data_pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                    {% if page_num_iter %}
+                        {% if data_pagination.page == page_num_iter %}<li class="page-item active"><span class="page-link">{{ page_num_iter }}</span></li>
+                        {% else %}<li class="page-item"><a class="page-link" href="{{ url_for('labeling.show_or_perform_label', page=page_num_iter, per_page=per_page, search=search_query, show_stats=show_stats) }}">{{ page_num_iter }}</a></li>{% endif %}
+                    {% else %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+                {% endfor %}
+
+                {% if data_pagination.has_next %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('labeling.show_or_perform_label', page=data_pagination.next_num, per_page=per_page, search=search_query, show_stats=show_stats) }}">&raquo;</a></li>
+                {% else %}<li class="page-item disabled"><span class="page-link">&raquo;</span></li>{% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var totalDataReadyForLabeling = parseInt(JSON.parse('{{ total_data_for_labeling|default(0)|tojson|safe }}'));
+    var labelingForm = document.getElementById('labelForm');
+    var submitButton = document.getElementById('submitButton');
+    var loadingOverlay = document.getElementById('loadingOverlay');
+    var normalText = submitButton ? submitButton.querySelector('.normal-text') : null;
+    var loadingText = submitButton ? submitButton.querySelector('.loading-text') : null;
+
+    function disableInteraction() {
+        document.body.classList.add('loading');
+        var interactiveElements = document.querySelectorAll('button, a, input, select, .label-select');
+        interactiveElements.forEach(function(element) {
+            element.setAttribute('disabled', 'disabled');
+            if (element.tagName === 'A') {
+                element.style.pointerEvents = 'none';
+            }
+        });
+
+        if (loadingOverlay) {
+            loadingOverlay.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            });
+        }
+    }
+
+    if (labelingForm) {
+        labelingForm.addEventListener('submit', function(e) {
+            if (totalDataReadyForLabeling === 0) {
+                e.preventDefault();
+                $('#noPreprocessingModal').modal('show');
+                return false;
+            }
+
+            disableInteraction();
+
+            if (submitButton) {
+                submitButton.disabled = true;
+                if (normalText) normalText.classList.add('d-none');
+                if (loadingText) loadingText.classList.remove('d-none');
+            }
+            
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('d-none');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    // Custom file input
+    $(document).ready(function() {
+        // Handle custom file input
+        $('.form-control-file').on('change', function() {
+            let fileName = $(this).val().split('\\').pop();
+            let label = $(this).siblings('label');
+            if (label.length === 0) {
+                label = $(this).next('.custom-file-label');
+            }
+            if (label.length > 0) {
+                label.html(fileName);
+            }
+        });
+
+        // Handle form submission and loading state for expert label upload
+        $('#expertLabelForm').on('submit', function() {
+            let button = $('#uploadExpertButton');
+            button.prop('disabled', true);
+            button.find('.normal-text').addClass('d-none');
+            button.find('.loading-text').removeClass('d-none');
+            
+            $('#loadingOverlay').removeClass('d-none');
+        });
+    });
+</script>
+{% endblock %}

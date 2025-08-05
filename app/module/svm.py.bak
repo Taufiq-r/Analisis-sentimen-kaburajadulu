@@ -1,0 +1,291 @@
+import numpy as np
+from scipy.sparse import csr_matrix, issparse
+from typing import Dict, Any
+
+class SupportVectorMachine:
+    """
+    A Support Vector Machine classifier implemented from scratch using SMO algorithm.
+    Supports kernel methods (linear, RBF, polynomial) and was optimized for text classification.
+    """
+    def __init__(self, kernel='rbf', C=10.0, gamma='auto', degree=2, random_state=42):
+        """
+        Initializes the SupportVectorMachine classifier with optimized parameters.
+
+        Parameters:
+        -----------
+        kernel : str (default='rbf')
+            Jenis kernel yang digunakan. 
+            'linear' : u'*v
+            'rbf' : exp(-gamma*|u-v|^2)
+            'poly' : (gamma*u'*v + 1)^degree
+        C : float (default=10.0)
+            Parameter regularisasi. Nilai optimal dari hasil eksperimen.
+        gamma : str atau float (default='auto')
+            Koefisien kernel untuk 'rbf' dan 'poly'.
+            'auto' berarti 1/n_features.
+        degree : int (default=2)
+            Derajat dari polinomial untuk kernel 'poly'.
+        random_state : int (default=42)
+            Seed untuk random number generator.
+        """self.kernel = kernel
+        self.C = C
+        self.gamma = gamma
+        self.degree = degree
+        self.random_state = random_state
+        
+        # Model attributes that will be set during training
+        self.support_vectors_ = None
+        self.dual_coef_ = None
+        self.intercept_ = None
+        self.classes_ = None
+        self._gamma = None
+        self.label_to_idx_ = None
+        self.idx_to_label_ = None
+        
+        # Set random seed
+        np.random.seed(random_state)
+
+    def fit(self, X, y):
+        """
+        Melatih model SVM menggunakan Sequential Minimal Optimization (SMO).
+        
+        Parameters:
+        -----------
+        X : array-like atau sparse matrix, shape (n_samples, n_features)
+            Data training
+        y : array-like, shape (n_samples,)
+            Label target
+        """
+        # Prepare input
+        X_input = np.asarray(X)
+        y_input = np.array([str(label).strip().lower() for label in y])
+
+        # Setup class mapping
+        self.classes_ = np.unique(y_input)
+        if len(self.classes_) < 2:
+            raise ValueError("SVM membutuhkan setidaknya 2 kelas untuk dilatih.")
+
+        self.label_to_idx_ = {label: i for i, label in enumerate(self.classes_)}
+        self.idx_to_label_ = {i: label for label, i in self.label_to_idx_.items()}
+
+        # Convert to binary labels {-1, 1} for main class
+        y_bin = np.where(y_input == self.classes_[0], -1, 1)
+        
+        # Calculate kernel matrix
+        print("Menghitung matriks kernel...")
+        K = self._compute_kernel(X_input)
+        
+        # Initialize optimization variables
+        n_samples = K.shape[0]
+        alpha = np.zeros(n_samples)
+        b = 0.0
+        
+        # SMO optimization parameters
+        max_passes = 100
+        passes = 0
+        tol = 1e-3
+        eps = 1e-3
+        
+        print("Memulai optimasi SMO...")
+        while passes < max_passes:
+            num_changed_alphas = 0
+            for i in range(n_samples):
+                # Calculate error
+                Ei = np.sum(alpha * y_bin * K[i]) + b - y_bin[i]
+                
+                if ((y_bin[i] * Ei < -tol and alpha[i] < self.C) or 
+                    (y_bin[i] * Ei > tol and alpha[i] > 0)):
+                    # Select second example randomly
+                    j = i
+                    while j == i:
+                        j = np.random.randint(n_samples)
+                    
+                    Ej = np.sum(alpha * y_bin * K[j]) + b - y_bin[j]
+                    
+                    # Save old alpha values
+                    alpha_i_old = alpha[i]
+                    alpha_j_old = alpha[j]
+                    
+                    # Compute optimization bounds
+                    if y_bin[i] != y_bin[j]:
+                        L = max(0, alpha[j] - alpha[i])
+                        H = min(self.C, self.C + alpha[j] - alpha[i])
+                    else:
+                        L = max(0, alpha[i] + alpha[j] - self.C)
+                        H = min(self.C, alpha[i] + alpha[j])
+                        
+                    if L == H:
+                        continue
+                    
+                    # Compute kernel values if not already in matrix
+                    eta = 2 * K[i,j] - K[i,i] - K[j,j]
+                    if eta >= 0:
+                        continue
+                    
+                    # Update alpha_j
+                    alpha[j] = alpha_j_old - (y_bin[j] * (Ei - Ej)) / eta
+                    alpha[j] = max(L, min(H, alpha[j]))
+                    
+                    if abs(alpha[j] - alpha_j_old) < eps:
+                        continue
+                    
+                    # Update alpha_i
+                    alpha[i] = alpha_i_old + y_bin[i] * y_bin[j] * (alpha_j_old - alpha[j])
+                    
+                    # Update threshold
+                    b1 = b - Ei - y_bin[i] * (alpha[i] - alpha_i_old) * K[i,i] \
+                         - y_bin[j] * (alpha[j] - alpha_j_old) * K[i,j]
+                    b2 = b - Ej - y_bin[i] * (alpha[i] - alpha_i_old) * K[i,j] \
+                         - y_bin[j] * (alpha[j] - alpha_j_old) * K[j,j]
+                    
+                    if 0 < alpha[i] < self.C:
+                        b = b1
+                    elif 0 < alpha[j] < self.C:
+                        b = b2
+                    else:
+                        b = (b1 + b2) / 2
+                    
+                    num_changed_alphas += 1
+            
+            if num_changed_alphas == 0:
+                passes += 1
+                print(f"Pass {passes}: no alphas changed")
+            else:
+                passes = 0
+                print(f"Pass {passes}: {num_changed_alphas} alphas changed")
+        
+        # Store results
+        sv_mask = alpha > 1e-5
+        self.support_vectors_ = X_input[sv_mask]
+        self.dual_coef_ = alpha[sv_mask] * y_bin[sv_mask]
+        self.intercept_ = b
+        
+        print(f"Training selesai. {np.sum(sv_mask)} support vectors ditemukan.")
+        return self
+
+    def _decision_function(self, X):
+        """
+        Menghitung skor keputusan untuk data X.
+        
+        Parameters:
+        -----------
+        X : array-like atau sparse matrix, shape (n_samples, n_features)
+            Data yang akan dihitung skornya
+            
+        Returns:
+        --------
+        scores : array, shape (n_samples,)
+            Skor keputusan untuk setiap sampel
+        """
+        if self.support_vectors_ is None:
+            raise ValueError("Model belum dilatih. Panggil fit() terlebih dahulu.")
+            
+        K = self._compute_kernel(X, self.support_vectors_)
+        return np.dot(K, self.dual_coef_) + self.intercept_
+    
+    def project(self, X):
+        """Calculates the decision function scores for each class."""
+        X_input = np.asarray(X)
+        if self.w is None or self.b is None:
+            raise ValueError("SVM model has not been trained yet. Call fit() first.")
+        return np.dot(X_input, self.w.T) + self.b
+
+    def predict(self, X):
+        """
+        Melakukan prediksi untuk data X.
+        
+        Parameters:
+        -----------
+        X : array-like atau sparse matrix, shape (n_samples, n_features)
+            Data yang akan diprediksi
+            
+        Returns:
+        --------
+        y_pred : array, shape (n_samples,)
+            Label hasil prediksi
+        """
+        scores = self._decision_function(X)
+        y_pred = np.where(scores >= 0, self.classes_[1], self.classes_[0])
+        return y_pred
+    
+    def predict_proba(self, X):
+        """
+        Menghitung probabilitas prediksi menggunakan Platt scaling.
+        
+        Parameters:
+        -----------
+        X : array-like atau sparse matrix, shape (n_samples, n_features)
+            Data yang akan diprediksi
+            
+        Returns:
+        --------
+        probas : array, shape (n_samples, 2)
+            Probabilitas untuk setiap kelas
+        """
+        scores = self._decision_function(X)
+        
+        # Platt scaling
+        scores = 1 / (1 + np.exp(-scores))
+        probas = np.zeros((len(X), 2))
+        probas[:, 0] = 1 - scores
+        probas[:, 1] = scores
+        return probas
+    
+    def get_params(self) -> Dict[str, Any]:
+        """
+        Mendapatkan parameter model.
+        
+        Returns:
+        --------
+        params : dict
+            Dictionary berisi parameter model
+        """
+        return {
+            'kernel': self.kernel,
+            'C': self.C,
+            'gamma': self.gamma,
+            'degree': self.degree,
+            'random_state': self.random_state
+        }
+
+    def _compute_kernel(self, X, Y=None):
+        """
+        Menghitung matriks kernel antara X dan Y.
+        
+        Parameters:
+        -----------
+        X : array-like atau sparse matrix
+            Data pertama untuk komputasi kernel
+        Y : array-like atau sparse matrix, optional
+            Data kedua untuk komputasi kernel. Jika None, akan menggunakan X
+            
+        Returns:
+        --------
+        K : ndarray
+            Matriks kernel dengan ukuran (n_samples_X, n_samples_Y)
+        """
+        if Y is None:
+            Y = X
+            
+        if issparse(X):
+            X = X.toarray()
+        if issparse(Y):
+            Y = Y.toarray()
+            
+        if self._gamma is None:
+            self._gamma = 1.0 / X.shape[1] if self.gamma == 'auto' else self.gamma
+            
+        if self.kernel == 'linear':
+            return np.dot(X, Y.T)
+        elif self.kernel == 'rbf':
+            # Menghitung kernel RBF: K(x,y) = exp(-gamma ||x-y||^2)
+            X_norm = np.sum(X**2, axis=1).reshape(-1, 1)
+            Y_norm = np.sum(Y**2, axis=1).reshape(1, -1)
+            K = np.exp(-self._gamma * (X_norm + Y_norm - 2 * np.dot(X, Y.T)))
+            return K
+        elif self.kernel == 'poly':
+            # Menghitung kernel polinomial: K(x,y) = (gamma*<x,y> + 1)^degree
+            K = (self._gamma * np.dot(X, Y.T) + 1) ** self.degree
+            return K
+        else:
+            raise ValueError(f"Kernel {self.kernel} tidak didukung")

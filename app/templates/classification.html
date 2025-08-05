@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{#
+classification.html
+---------------------------------------------
+Halaman hasil klasifikasi Naive Bayes.
+---------------------------------------------
+#}
+
+{% block styles %}
+{# Tidak ada gaya spesifik halaman yang perlu didefinisikan di sini jika semua di style.css #}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid d-flex justify-content-center align-items-center page-container"> {# Menggunakan page-container #}
+    <div class="content-wrapper content-wrapper-wide"> {# content-wrapper-wide untuk lebar yang lebih besar #}
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb"> {# Mengandalkan styling .breadcrumb di style.css. Kelas Bootstrap 'bg-white shadow-sm rounded-pill px-4 py-2 mb-4' dihapus. #}
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}" class="breadcrumb-dashboard-link"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Klasifikasi Naive Bayes</li>
+            </ol>
+        </nav>
+
+        <h2 class="mt-3 mb-4 text-center font-weight-bold">
+            <i class="fas fa-brain text-info mr-2"></i>Klasifikasi Naive Bayes
+        </h2>
+        <p class="mb-4 text-center text-secondary lead">
+            
+            Rasio data uji yang dipilih: 
+            <span class="font-weight-bold text-info">{% if test_ratio %}{{ (test_ratio|float * 100)|round(1) }}%{% else %}belum dipilih{% endif %}</span>
+        </p>
+
+        {% if info_message or not test_ratio %}
+        {# Menggunakan alert-custom-info #}
+        <div class="alert alert-custom-info text-center mb-4 alert-maxwidth">
+            <p class="mb-2">Silakan pilih rasio data uji terlebih dahulu untuk melanjutkan klasifikasi</p>
+            <a href="{{ url_for('classification_tasks.select_test_ratio') }}" class="btn btn-info">Pilih Rasio Data Uji</a>
+        </div>
+        {% else %}
+        <form id="klasifikasiForm" method="post" action="{{ url_for('nb_classification_tasks.classification_nb') }}" class="text-center mb-4">
+            <input type="hidden" name="test_ratio" value="{{ test_ratio }}">
+            <input type="hidden" name="start_classification" value="true">
+            <div id="submitButtonContainer">
+                {# Menggunakan btn-custom untuk konsistensi. Kelas Bootstrap 'btn-info btn-lg px-5' dihapus. #}
+                <button type="submit" class="btn btn-custom" id="submitButton">
+                    <span class="normal-text">
+                        <i class="fas fa-brain mr-2"></i>Mulai Klasifikasi
+                    </span>
+                    <span class="loading-text d-none">
+                        <span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                        Sedang memproses...
+                    </span>
+                </button>
+            </div>
+            {# Loading spinner inline ini dihapus karena loadingOverlay akan mengambil alih #}
+            {#
+            <div id="loadingSpinner" class="text-center d-none">
+                <div class="spinner-border text-info spinner-lg" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <div class="mt-2 font-weight-bold text-primary">Sedang mengklasifikasikan data menggunakan Naive Bayes, mohon tunggu...</div>
+            </div>
+            #}
+        </form>
+
+        <!-- Loading overlay -->
+        <div id="loadingOverlay" class="loading-overlay d-none">
+            <div class="loading-content">
+                <div class="spinner-border text-info mb-3 spinner-lg" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <h5 class="mb-2">Sedang Memproses</h5>
+                <p class="mb-0 text-muted">Mohon tunggu, sedang melakukan klasifikasi menggunakan Naive Bayes...</p>
+            </div>
+        </div>
+        {% endif %}
+
+        {# Menggunakan btn-danger untuk konsistensi. Kelas Bootstrap 'btn-lg px-5' dihapus. #}
+        <div class="text-center mb-4">
+            <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#resetClassificationModal"
+                    {% if not report_otomatis and not report_pakar %}disabled title="Belum ada hasil klasifikasi untuk direset"{% endif %}>
+                <i class="fas fa-trash-alt mr-2"></i>Reset Klasifikasi Sebelumnya
+            </button>
+        </div>
+
+        
+
+        {# Kondisi utama untuk menampilkan laporan dan hasil klasifikasi #}
+        {% if not report_otomatis and not report_pakar %}
+            <div class="alert alert-info text-center mb-3">
+                Belum ada data laporan klasifikasi untuk Naive Bayes. <br>
+                Silakan jalankan proses klasifikasi untuk melihat laporan di sini.
+            </div>
+        {% else %}
+            <ul class="nav nav-tabs nav-fill mb-4" id="classificationTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active" id="otomatis-tab" data-toggle="tab" href="#otomatis" role="tab" aria-controls="otomatis" aria-selected="true">
+                        <i class="fas fa-robot mr-2"></i>Hasil Label Otomatis
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="pakar-tab" data-toggle="tab" href="#pakar" role="tab" aria-controls="pakar" aria-selected="false">
+                        <i class="fas fa-user-check mr-2"></i>Hasil Label Pakar
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="classificationTabContent">
+                {% for source in ['otomatis', 'pakar'] %}
+                {% set report = report_otomatis if source == 'otomatis' else report_pakar %}
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ source }}" role="tabpanel" aria-labelledby="{{ source }}-tab">
+                    {% if report %}
+                        <div class="mb-3 custom-card p-3">
+                            <h5 class="card-title mb-4 text-center"><i class="fas fa-database text-info mr-2"></i>Informasi Klasifikasi Naive Bayes({{ source|title }})</h5>
+                            <div class="info-grid mb-3">
+                                <div class="info-item">
+                                    <div class="card-icon mb-2"><i class="fas fa-user-graduate text-success"></i></div>
+                                    <div>
+                                        <div class="info-label">Total Data Latih</div>
+                                        <div class="info-value text-success">{{ report.data_stats.total_train if report.data_stats and report.data_stats.total_train is not none else report.data_stats.total_train }}</div>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="card-icon mb-2"><i class="fas fa-vial text-warning"></i></div>
+                                    <div>
+                                        <div class="info-label">Total Data Uji</div>
+                                        <div class="info-value text-warning">{{ report.data_stats.total_test }}</div>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="card-icon mb-2"><i class="fas fa-percentage text-info"></i></div>
+                                    <div>
+                                        <div class="info-label">Rasio Data Uji</div>
+                                        <div class="info-value text-info">{{ (report.data_stats.test_ratio * 100)|round(1) }}%</div>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="card-icon mb-2"><i class="fas fa-bullseye text-primary"></i></div>
+                                    <div>
+                                        <div class="info-label">Akurasi</div>
+                                        <div class="info-value text-primary">{{ (report.accuracy * 100)|round(2) }}%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning text-center">Laporan untuk sumber label '{{ source }}' tidak ditemukan.</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        
+    </div>
+</div>
+
+<div class="modal fade" id="resetClassificationModal" tabindex="-1" aria-labelledby="resetClassificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header warning-header">
+                <h5 class="modal-title" id="resetClassificationModalLabel">Konfirmasi Reset Hasil Klasifikasi</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Apakah Anda yakin ingin mereset semua hasil klasifikasi <b>Naive Bayes</b>?</p>
+                <ul class="text-left mb-3">
+                    <li>Semua data di tabel <b>hasil klasifikasi Naive Bayes</b> akan dihapus.</li>
+                    <li>Laporan akurasi, presisi, recall, dan F1-score akan hilang.</li>
+                    <li>Anda perlu menjalankan ulang klasifikasi untuk mendapatkan hasil baru.</li>
+                </ul>
+                <p class="text-danger mt-2"><strong>Peringatan:</strong> Tindakan ini tidak dapat dibatalkan!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                <form method="post" action="{{ url_for('nb_classification_tasks.reset_nb_classification') }}" class="form-display-inline">
+                    <button type="submit" class="btn btn-danger">Ya, Reset Hasil Klasifikasi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('klasifikasiForm');
+    var submitButton = document.getElementById('submitButton');
+    var loadingOverlay = document.getElementById('loadingOverlay');
+    var submitButtonContainer = document.getElementById('submitButtonContainer');
+    // FIX: Menggunakan ternary operator untuk kompatibilitas yang lebih luas
+    var normalText = submitButton ? submitButton.querySelector('.normal-text') : null;
+    var loadingText = submitButton ? submitButton.querySelector('.loading-text') : null;
+
+    if (form && submitButton && loadingOverlay) {
+        form.addEventListener('submit', function(e) {
+            // Disable the button and show loading state
+            submitButton.disabled = true;
+            if (normalText) normalText.classList.add('d-none');
+            if (loadingText) loadingText.classList.remove('d-none');
+            
+            // Show loading overlay
+            loadingOverlay.classList.remove('d-none');
+            
+            // Hide submit button container and show spinner
+            if (submitButtonContainer) submitButtonContainer.classList.add('d-none');
+        });
+    }
+});
+</script>
+{% endblock %}

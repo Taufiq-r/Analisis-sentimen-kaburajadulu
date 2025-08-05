@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container-fluid page-container">
+    <div class="content-wrapper content-wrapper-wide mx-auto">
+        {# Flash messages #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show text-center" role="alert">
+                        {{ message }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb shadow-sm">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}" class="breadcrumb-dashboard-link"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Perbandingan Klasifikasi</li>
+            </ol>
+        </nav>
+
+        <div class="page-header text-center mb-5">
+            <h2 class="display-4 font-weight-bold text-primary">
+                <i class="fas fa-balance-scale text-info mr-2"></i>Perbandingan Hasil Klasifikasi Model
+            </h2>
+            <p class="lead text-muted">
+                <i class="fas fa-chart-bar mr-1 text-primary"></i>
+                Perbandingan kinerja antara model
+                <span class="badge badge-primary px-3 py-2"><i class="fas fa-brain mr-1"></i>Naive Bayes</span>
+                dan
+                <span class="badge badge-success px-3 py-2"><i class="fas fa-cogs mr-1"></i>SVM</span>
+            </p>
+        </div>
+
+        {# Riwayat Perbandingan #}
+        {% if history is not none %}
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="mb-0">
+                <i class="fas fa-history text-info mr-2"></i>Riwayat Perbandingan
+            </h4>
+            <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#resetComparisonModal"
+                    {% if not history %}disabled{% endif %}>
+                <i class="fas fa-trash-alt mr-1"></i> Reset Riwayat
+            </button>
+        </div>
+        <div class="card shadow-sm mb-5">
+            <div class="card-body p-0 history-card">
+                <table class="table table-bordered table-hover table-bordered-black mb-0 history-table" style="width:100%; min-width:850px;">
+                        <thead class="thead-light">
+                            <tr>
+                                <th rowspan="2" class="align-middle text-center date-column" style="min-width:120px; max-width:130px;">Tanggal</th>
+                                <th colspan="4" class="text-primary text-center border-bottom">Naive Bayes</th>
+                                <th colspan="2" class="text-info text-center border-bottom">Split</th>
+                                <th colspan="6" class="text-success text-center border-bottom">Support Vector Machine</th>
+                            </tr>
+                            <tr>
+                                <th class="text-primary" style="min-width:45px">Akur.</th>
+                                <th class="text-primary" style="min-width:35px">Latih</th>
+                                <th class="text-primary" style="min-width:35px">Uji</th>
+                                <th class="text-primary" style="min-width:35px">Vocab</th>
+                                <th class="text-info" style="min-width:35px">Rasio</th>
+                                <th class="text-info label-column" style="min-width:65px">Label</th>
+                                <th class="text-success" style="min-width:45px">Akur.</th>
+                                <th class="text-success" style="min-width:35px">Latih</th>
+                                <th class="text-success" style="min-width:35px">Uji</th>
+                                <th class="text-success" style="min-width:35px">Vocab</th>
+                                <th class="text-success" style="min-width:35px">LRate</th>
+                                <th class="text-success" style="min-width:35px">Lambda</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if history|length == 0 %}
+                            <tr>
+                                <td colspan="13" class="text-center text-muted">Belum ada riwayat perbandingan.</td>
+                            </tr>
+                            {% else %}
+                            {% for h in history %}
+                            <tr>
+                                <td class="date-cell">{{ h.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td class="text-primary font-weight-bold">{{ (h.accuracy_nb * 100)|round(1) if h.accuracy_nb is not none else '-' }}%</td>
+                                <td class="text-primary">{{ h.nb_total_train or '-' }}</td>
+                                <td class="text-primary">{{ h.nb_total_test or '-' }}</td>
+                                <td class="text-primary">{{ h.nb_vocab_size or '-' }}</td>
+                                <td class="text-info font-weight-bold">{{ (h.nb_test_ratio * 100)|round(0) if h.nb_test_ratio is not none else '-' }}%</td>
+                                <td class="text-info font-weight-bold">{{ h.label_source if h.label_source else 'Otomatis' }}</td>
+                                <td class="text-success font-weight-bold">{{ (h.accuracy_svm * 100)|round(1) if h.accuracy_svm is not none else '-' }}%</td>
+                                <td class="text-success">{{ h.svm_total_train or '-' }}</td>
+                                <td class="text-success">{{ h.svm_total_test or '-' }}</td>
+                                <td class="text-success">{{ h.nb_vocab_size or '-' }}</td>
+                                <td class="text-success">{{ h.svm_learning_rate or '-' }}</td>
+                                <td class="text-success">{{ h.svm_lambda or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% endif %}
+                        </tbody>
+                    </table>
+                <div class="text-muted text-center mt-3 px-2">
+                    <p class="small mb-1"><i class="fas fa-info-circle mr-1"></i>Vocab: jumlah kata unik dalam TF-IDF, sama untuk kedua model.</p>
+                    <p class="small mb-1 text-info"><i class="fas fa-info-circle mr-1"></i>Label: sumber label ("otomatis" atau "pakar").</p>
+                    <p class="small mb-1 text-info"><i class="fas fa-info-circle mr-1"></i>Rasio: persentase data uji.</p>
+                    <div class="mt-2 mb-2">
+                        <span class="badge badge-primary mr-2"><i class="fas fa-brain mr-1"></i>NB</span>
+                        <span class="badge badge-info mr-2"><i class="fas fa-percentage mr-1"></i>Split</span>
+                        <span class="badge badge-success"><i class="fas fa-cogs mr-1"></i>SVM</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# Alert ketika tidak ada laporan yang dapat dibandingkan #}
+        {% if not report_nb_otomatis and not report_svm_otomatis and not report_nb_pakar and not report_svm_pakar %}
+            <div class="alert alert-custom-info text-center alert-maxwidth">
+                Belum ada data laporan klasifikasi yang dapat dibandingkan. <br>
+                Silakan jalankan proses klasifikasi untuk <a href="{{ url_for('nb_classification_tasks.classification_nb') }}">Naive Bayes</a> dan <a href="{{ url_for('svm_classification_tasks.classification_svm') }}">SVM</a> terlebih dahulu.
+            </div>
+        {% else %}
+            {# Helper macro to render accuracy card #}
+            {% macro accuracy_card(model_name, report, color_class, icon_class, source) %}
+            <div class="col-md-6 col-lg-3 mb-4">
+                <div class="card shadow-sm h-100 border-{{ color_class }}">
+                    <div class="card-body text-center p-4">
+                        <div class="rounded-circle bg-{{ color_class }} text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                            <i class="fas {{ icon_class }} fa-2x"></i>
+                        </div>
+                        <h5 class="card-title text-{{ color_class }} mb-2">{{ model_name }}</h5>
+                        <p class="text-muted mb-2">Sumber Label: <span class="badge badge-info">{{ source|capitalize }}</span></p>
+                        <h2 class="display-4 font-weight-bold mb-3">
+                            {{ (report.accuracy * 100)|round(2) if report and report.accuracy is defined else '-' }}%
+                        </h2>
+                    </div>
+                </div>
+            </div>
+            {% endmacro %}
+
+            <div class="row mb-5">
+                {{ accuracy_card('Naive Bayes', report_nb_otomatis, 'primary', 'fa-brain', 'otomatis') }}
+                {{ accuracy_card('SVM', report_svm_otomatis, 'success', 'fa-cogs', 'otomatis') }}
+                {{ accuracy_card('Naive Bayes', report_nb_pakar, 'primary', 'fa-brain', 'pakar') }}
+                {{ accuracy_card('SVM', report_svm_pakar, 'success', 'fa-cogs', 'pakar') }}
+            </div>
+
+            {# Helper macro to render summary card #}
+            {% macro summary_card(model_name, report, color_class, icon_class, source) %}
+            <div class="col-lg-6 mb-4">
+                {% if report %}
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-{{ color_class }} text-white">
+                        <h4 class="mb-0 text-center">
+                            <i class="fas {{ icon_class }} mr-2"></i>{{ model_name }} - Ringkasan ({{ source|capitalize }})
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="text-center p-3 rounded bg-light">
+                                    <div class="mb-2"><i class="fas fa-user-graduate text-success fa-2x"></i></div>
+                                    <h6 class="mb-2">Data Latih</h6>
+                                    <h4 class="text-success mb-0">{{ report.data_stats.total_train or '-' }}</h4>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center p-3 rounded bg-light">
+                                    <div class="mb-2"><i class="fas fa-vial text-warning fa-2x"></i></div>
+                                    <h6 class="mb-2">Data Uji</h6>
+                                    <h4 class="text-warning mb-0">{{ report.data_stats.total_test if report.data_stats and report.data_stats.total_test is not none else '-' }}</h4>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center p-3 rounded bg-light">
+                                    <div class="mb-2"><i class="fas fa-percentage text-info fa-2x"></i></div>
+                                    <h6 class="mb-2">Rasio Data Uji</h6>
+                                    <h4 class="text-info mb-0">{% if report.data_stats and report.data_stats.test_ratio %}{{ (report.data_stats.test_ratio * 100)|round(1) }}%{% else %}-{% endif %}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                {% else %}
+                <div class="custom-card h-100 p-5 text-center">
+                    <p class="text-muted mb-0">Laporan {{ model_name }} ({{ source|capitalize }}) tidak tersedia.</p>
+                    {% set endpoint_model = 'nb' if 'naive bayes' in model_name|lower else 'svm' %}
+                    <a href="{{ url_for(endpoint_model ~ '_classification_tasks.classification_' ~ endpoint_model) }}" class="btn btn-custom mt-3">
+                        <i class="fas fa-play me-2"></i>Jalankan Klasifikasi {{ model_name }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endmacro %}
+
+            <div class="row mb-4">
+                {{ summary_card('Naive Bayes', report_nb_otomatis, 'primary', 'fa-brain', 'otomatis') }}
+                {{ summary_card('SVM', report_svm_otomatis, 'success', 'fa-cogs', 'otomatis') }}
+            </div>
+            <div class="row mb-4">
+                {{ summary_card('Naive Bayes', report_nb_pakar, 'primary', 'fa-brain', 'pakar') }}
+                {{ summary_card('SVM', report_svm_pakar, 'success', 'fa-cogs', 'pakar') }}
+            </div>
+
+            {# Helper macro to render evaluation details #}
+            {% macro evaluation_details(model_name, report, color_class, icon_class, source) %}
+            <div class="col-lg-6 mb-4">
+                {% if report and report.confusion_matrix and report.labels %}
+                <div class="custom-card p-3 h-100 evaluation-card">
+                    <h5 class="mb-0 text-center text-{{ color_class }} mt-2">
+                        <i class="fas {{ icon_class }} me-2"></i>{{ model_name }} - Detail Evaluasi ({{ source|capitalize }})
+                    </h5>
+                    <div class="card-body">
+                        <h6 class="text-center mt-2 mb-3">
+                            <i class="fas fa-table mr-2"></i>Confusion Matrix
+                        </h6>
+                        <table class="table table-bordered table-hover classification-table text-center align-middle mb-4" style="min-width: 400px;">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th></th>
+                                    <th colspan="{{ report.labels|length }}" class="text-center">Predicted Label</th>
+                                </tr>
+                                <tr>
+                                    <th>True Label</th>
+                                    {% for label in report.labels %}
+                                        <th>{{ label|capitalize }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i in range(report.labels|length) %}
+                                <tr>
+                                    <td class="font-weight-bold">{{ report.labels[i]|capitalize }}</td>
+                                    {% for j in range(report.labels|length) %}
+                                        <td class="fw-bold {% if i == j %}table-success{% elif report.confusion_matrix[i][j] == 0 %}table-secondary{% else %}table-danger{% endif %}" style="min-width: 50px;">{{ report.confusion_matrix[i][j] }}</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div class="badge-group mb-3">
+                            <span class="badge badge-success px-2 py-1"><i class="fas fa-check mr-1"></i>DIAGONAL: BENAR</span>
+                            <span class="badge badge-danger px-2 py-1"><i class="fas fa-times mr-1"></i>OFF-DIAGONAL: SALAH</span>
+                            <span class="badge badge-secondary px-2 py-1"><i class="fas fa-circle mr-1"></i>0: TIDAK ADA</span>
+                        </div>
+                        <h6 class="text-center mt-4 mb-3">Metrik per Kelas</h6>
+                        {% if report.classification_report %}
+                        <table class="table table-bordered table-hover metric-table text-center align-middle" style="min-width: 500px;">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Kelas</th>
+                                    <th>Presisi (%)</th>
+                                    <th>Recall (%)</th>
+                                    <th>F1-Score (%)</th>
+                                    <th>Support</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for label_item in report.labels %}
+                                <tr>
+                                    <td class="font-weight-bold">{{ label_item|capitalize }}</td>
+                                    <td>{{ (report.classification_report[label_item]['precision'] * 100)|round(2) }}%</td>
+                                    <td>{{ (report.classification_report[label_item]['recall'] * 100)|round(2) }}%</td>
+                                    <td>{{ (report.classification_report[label_item]['f1-score'] * 100)|round(2) }}%</td>
+                                    <td>{{ report.classification_report[label_item]['support'] }}</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="font-weight-bold table-info">
+                                    <td>Rata-rata (Macro)</td>
+                                    <td>{{ (report.classification_report['macro avg']['precision'] * 100)|round(2) }}%</td>
+                                    <td>{{ (report.classification_report['macro avg']['recall'] * 100)|round(2) }}%</td>
+                                    <td>{{ (report.classification_report['macro avg']['f1-score'] * 100)|round(2) }}%</td>
+                                    <td>-</td>
+                                </tr>
+                                <tr class="font-weight-bold table-info">
+                                    <td>Rata-rata (Weighted)</td>
+                                    <td>{{ (report.classification_report['weighted avg']['precision'] * 100)|round(2) }}%</td>
+                                    <td>{{ (report.classification_report['weighted avg']['recall'] * 100)|round(2) }}%</td>
+                                    <td>{{ (report.classification_report['weighted avg']['f1-score'] * 100)|round(2) }}%</td>
+                                    <td>-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <p class="text-muted text-center small">Data Metrik per Kelas tidak tersedia.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="custom-card h-100 p-5 text-center">
+                    <p class="text-muted mb-0">Laporan {{ model_name }} ({{ source|capitalize }}) tidak tersedia.</p>
+                    {% set endpoint_model = 'nb' if 'naive bayes' in model_name|lower else 'svm' %}
+                    <a href="{{ url_for(endpoint_model ~ '_classification_tasks.classification_' ~ endpoint_model) }}" class="btn btn-custom mt-3">
+                        <i class="fas fa-play me-2"></i>Jalankan Klasifikasi {{ model_name }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endmacro %}
+
+            
+
+            <div class="row mb-4">
+                {{ evaluation_details('Naive Bayes', report_nb_otomatis, 'primary', 'fa-brain', 'otomatis') }}
+                {{ evaluation_details('SVM', report_svm_otomatis, 'success', 'fa-cogs', 'otomatis') }}
+            </div>
+            <div class="row mb-4">
+                {{ evaluation_details('Naive Bayes', report_nb_pakar, 'primary', 'fa-brain', 'pakar') }}
+                {{ evaluation_details('SVM', report_svm_pakar, 'success', 'fa-cogs', 'pakar') }}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal fade" id="resetComparisonModal" tabindex="-1" aria-labelledby="resetComparisonModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header warning-header">
+                <h5 class="modal-title" id="resetComparisonModalLabel">Konfirmasi Reset Riwayat</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Apakah Anda yakin ingin mereset <b>seluruh riwayat perbandingan</b>? Tindakan ini akan:</p>
+                <ul class="text-left mb-3">
+                    <li>Menghapus semua data yang tersimpan di tabel riwayat perbandingan.</li>
+                    <li>Anda tidak akan bisa melihat riwayat perbandingan sebelumnya.</li>
+                </ul>
+                <p class="text-danger mt-2"><strong>Peringatan:</strong> Tindakan ini tidak dapat dibatalkan!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                <form method="post" action="{{ url_for('comparison_tasks.reset_comparison_history') }}" class="form-display-inline">
+                    <button type="submit" class="btn btn-danger">Ya, Reset Riwayat</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var klasifikasiSvmForm = document.getElementById('klasifikasiSvmForm');
+    if (klasifikasiSvmForm) {
+        klasifikasiSvmForm.addEventListener('submit', function(e) {
+            var testRatio = '{{ test_ratio }}'; // Mengambil test_ratio dari Flask context
+            if (!testRatio || testRatio === 'None') { // Perbaikan: Cek juga jika test_ratio adalah string 'None'
+                e.preventDefault();
+                $('#noTestRatioModalSvm').modal('show');
+                return false;
+            }
+
+            // Disable button container and show loading states
+            var submitButton = document.getElementById('submitButton');
+            var loadingOverlay = document.getElementById('loadingOverlay');
+            var loadingSpinner = document.getElementById('loadingSpinner');
+            var submitButtonContainer = document.getElementById('submitButtonContainer');
+            // FIX: Menggunakan ternary operator untuk kompatibilitas yang lebih luas
+            var normalText = submitButton ? submitButton.querySelector('.normal-text') : null;
+            var loadingText = submitButton ? submitButton.querySelector('.loading-text') : null;
+            
+            // Disable the button and show loading state
+            submitButton.disabled = true;
+            if (normalText) normalText.classList.add('d-none');
+            if (loadingText) loadingText.classList.remove('d-none');
+
+            // Show loading overlay
+            if (loadingOverlay) loadingOverlay.classList.remove('d-none');
+            
+            // Hide submit button container and show spinner
+            if (submitButtonContainer) submitButtonContainer.classList.add('d-none');
+            if (loadingSpinner) loadingSpinner.classList.remove('d-none');
+        });
+    }
+});
+</script>
+<style>
+/* Tambahan styling agar tabel lebih rapi dan responsif */
+.classification-table th, .classification-table td, .metric-table th, .metric-table td {
+    vertical-align: middle !important;
+    text-align: center;
+    padding: 8px 12px;
+}
+.classification-table th, .metric-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+.classification-table {
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+}
+.metric-table {
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+}
+@media (max-width: 768px) {
+    .classification-table, .metric-table {
+        font-size: 0.95rem;
+        min-width: 350px;
+    }
+}
+</style>
+{% endblock %}

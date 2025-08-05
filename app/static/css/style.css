@@ -1,0 +1,1681 @@
+/*
+style.css
+---------------------------------------------
+
+/* --- 1. Variabel CSS untuk Tema --- */
+/* Mendefinisikan warna dan nilai umum untuk konsistensi dan kemudahan perubahan di seluruh aplikasi */
+:root {
+    /* Warna Primer */
+    --primary-blue: #17a2b8; /* Biru terang, sering untuk aksi utama, tombol info */
+    --dark-blue: #138496;    /* Biru lebih gelap, untuk hover/active states */
+
+    /* Warna Sekunder */
+    --secondary-blue-gray: #2f4f6c;         /* Biru keabu-abuan gelap, untuk elemen sekunder, tombol reset */
+    --darker-secondary-blue-gray: #24394e;  /* Versi lebih gelap dari sekunder */
+
+    /* Warna Aksen */
+    --accent-red: #1ab2f8; /* Merah oranye, untuk indikator aktif, highlights */
+
+    /* Warna Teks & Latar Belakang */
+    --text-light: #e0e0e0;     /* Teks sangat terang, untuk sidebar */
+    --text-muted: #adb5bd;     /* Teks abu-abu muda, untuk ikon, sub-item */
+    --text-dark: #212529;      /* Teks hitam pekat, untuk footer */
+    --text-default: #333333;   /* Warna teks umum yang sedikit lebih gelap untuk readability */
+    --bg-light: #f4f7f6;       /* Latar belakang terang untuk halaman, sedikit lebih hangat */
+    --bg-white: #ffffff;       /* Latar belakang putih untuk kartu, konten */
+    --border-light: #e0e0e0;   /* Warna border terang */
+
+    /* Warna Tabel */
+    --table-header-bg: #3f5f7c;    /* Latar belakang header tabel, sedikit lebih kebiruan */
+    --table-header-color: #fff;    /* Warna teks header tabel */
+    --table-stripe-bg: #f9fbfb;    /* Warna stripe ganjil di tabel, lebih lembut */
+    --table-hover-bg: #e6f2f7;     /* Warna latar belakang saat baris tabel di-hover, lebih lembut */
+    --table-border: var(--text-dark); /* Mengubah warna border tabel menjadi hitam */
+
+    /* Warna Spesifik Komponen */
+    --alert-info-bg: #e3f2fd;
+    --alert-info-border: #b3e5fc;
+    --alert-info-text: #0d47a1;
+    --warning-header-bg: #fff3cd;
+    --warning-header-color: #046185;
+
+    /* Warna Sel Matriks Kebingungan */
+    --match-cell-bg: rgba(23, 162, 184, 0.15);    /* Latar belakang sel match (biru transparan) */
+    --mismatch-cell-bg: rgba(220, 53, 69, 0.15);  /* Latar belakang sel mismatch (merah transparan) */
+    --sum-cell-bg: #f0f0f0;                     /* Latar belakang sel sum (abu-abu terang) */
+
+    /* Warna Badge Polaritas */
+    --polarity-positif: #28a745; /* Hijau */
+    --polarity-negatif: #dc3545; /* Merah */
+    --polarity-netral: #6c757d;  /* Abu-abu */
+
+    /* Warna Badge Subjektivitas */
+    --subjectivity-opini: #17a2b8;   /* Biru (sama dengan primary) */
+    --subjectivity-faktual: #6c757d; /* Abu-abu (sama dengan netral) */
+
+    /* Shadows */
+    --shadow-light: 0 2px 5px rgba(0,0,0,0.08); /* Lebih jelas */
+    --shadow-medium: 0 5px 15px rgba(0,0,0,0.12); /* Lebih jelas */
+    --shadow-strong: 0 10px 30px rgba(0,0,0,0.18); /* Sangat jelas */
+    --shadow-hover: 0 8px 25px rgba(0,0,0,0.2); /* Bayangan saat hover */
+}
+
+/* --- 2. Gaya Dasar & Tata Letak Umum --- */
+html, body {
+    height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Roboto', sans-serif; /* Menggunakan Roboto sebagai font utama */
+    color: var(--text-default); /* Warna teks default untuk body */
+    background-color: var(--bg-light); /* Latar belakang halaman yang lebih halus */
+}
+
+#main-content {
+    flex: 1 0 auto; /* Memastikan konten utama mengambil ruang yang tersedia */
+    transition: margin-left 0.4s ease-in-out, background 0.3s ease;
+    background: var(--bg-white);
+    margin-left: 250px; /* Offset karena sidebar */
+    width: calc(100% - 250px); /* Konten mengambil sisa lebar */
+    min-height: 100vh;
+    box-shadow: var(--shadow-medium); /* Memberikan kedalaman visual */
+}
+
+#main-content.full-width {
+    margin-left: 0;
+    width: 100%;
+}
+
+.container-fluid {
+    padding-top: 30px; /* Padding atas untuk konten */
+}
+
+/* --- 3. Gaya Sidebar (diperbarui) --- */
+#sidebar.sidebar-custom { /* Menggunakan kelas baru: sidebar-custom */
+    position: fixed; /* Sidebar tetap di tempat */
+    top: 0;
+    left: 0;
+    width: 250px;
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue)) !important; /* Gradien latar belakang */
+    padding-top: 20px;
+    transform: translateX(0); /* Terbuka secara default */
+    transition: transform 0.4s ease-in-out, background-color 0.3s ease;
+    z-index: 1000; /* Pastikan di atas konten */
+    box-shadow: var(--shadow-strong); /* Bayangan untuk efek terangkat yang lebih kuat */
+    border-top-right-radius: 15px; /* Tambahkan border radius untuk sudut */
+    border-bottom-right-radius: 15px;
+    overflow-y: auto; /* Memungkinkan scroll jika konten sidebar panjang */
+}
+
+#sidebar.closed {
+    transform: translateX(-250px); /* Geser keluar layar saat ditutup */
+}
+
+.sidebar-header {
+    padding: 15px 10px;
+    text-align: center;
+}
+
+.app-title {
+    font-family: 'Google Sans', sans-serif; /* Menggunakan Google Sans */
+    font-size: 1.5rem; /* Ukuran font judul aplikasi */
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.app-title-link {
+    text-decoration: none;
+    color: var(--bg-white); /* Warna teks putih untuk judul */
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-title-link:hover {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.app-title-link .fas {
+    font-size: 1.3rem;
+    margin-right: 8px;
+}
+
+.sidebar-divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 15px 0;
+}
+
+.nav-menu { /* Mengganti #sidebar ul */
+    padding: 0;
+    list-style-type: none;
+}
+
+.nav-menu li { /* Mengganti #sidebar ul li */
+    margin: 5px 10px;
+}
+
+.nav-menu li a, /* Mengganti #sidebar ul li a */
+.nav-menu .nav-item.dropdown > .dropdown-toggle {
+    color: var(--text-light);
+    text-decoration: none;
+    border-radius: 8px;
+    padding: 12px 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    border-left: 4px solid transparent;
+    transition: background-color 0.2s ease, color 0.2s ease, border-left-color 0.2s ease;
+}
+
+.nav-menu li a .fas, /* Mengganti #sidebar ul li a .fas */
+.nav-menu .nav-item.dropdown > .dropdown-toggle .fas {
+    margin-right: 12px;
+    width: 20px;
+    text-align: center;
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+    font-size: 1em; /* Ukuran ikon sedikit lebih besar */
+}
+
+.nav-menu li a:hover, /* Mengganti #sidebar ul li a:hover */
+.nav-menu .nav-item.dropdown > .dropdown-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--bg-white);
+    border-left-color: var(--accent-red);
+}
+
+.nav-menu li a.active, /* Mengganti #sidebar ul li a.active */
+.nav-menu .nav-item.dropdown.active > .dropdown-toggle {
+    background-color: rgba(255, 111, 97, 0.15);
+    color: var(--bg-white);
+    font-weight: 600;
+    border-left-color: var(--accent-red);
+}
+
+.nav-menu li a.active .fas, /* Mengganti #sidebar ul li a.active .fas */
+.nav-menu .nav-item.dropdown.active > .dropdown-toggle .fas {
+    color: var(--bg-white);
+}
+
+/* Gaya Dropdown Sidebar (diperbarui) */
+.nav-menu .nav-item.dropdown .dropdown-menu { /* Mengganti #sidebar .nav-item.dropdown .dropdown-menu */
+    background-color: var(--dark-blue);
+    border: none;
+    margin-top: 2px !important;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    border-radius: 0 0 6px 6px;
+    box-shadow: var(--shadow-medium);
+    width: calc(100% - 20px);
+    margin-left: 10px;
+    position: static; /* Biarkan dropdown muncul secara statis di bawah item, bukan overlay */
+    float: none; /* Hapus float */
+}
+
+.nav-menu .nav-item.dropdown .dropdown-item { /* Mengganti #sidebar .nav-item.dropdown .dropdown-item */
+    color: var(--text-muted);
+    padding: 8px 15px;
+    font-weight: 500;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    border-radius: 4px;
+    margin: 2px 5px;
+}
+
+.nav-menu .nav-item.dropdown .dropdown-item:hover,
+.nav-menu .nav-item.dropdown .dropdown-item:focus {
+    color: var(--bg-white);
+    background-color: var(--accent-red);
+}
+
+.nav-menu .nav-item.dropdown .dropdown-item.active-dropdown-sub-item {
+    color: var(--bg-white);
+    background-color: var(--accent-red);
+    font-weight: 600;
+}
+
+/* --- 4. Gaya Tombol Toggle Sidebar --- */
+#toggle-sidebar {
+    position: fixed; /* Tombol tetap di layar */
+    top: 15px;
+    left: 15px;
+    background-color: var(--primary-blue);
+    color: var(--bg-white);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    width: 44px; /* Ukuran sedikit lebih besar */
+    height: 44px;
+    text-align: center;
+    padding: 0;
+    border-radius: 50%; /* Bulat sempurna */
+    z-index: 1031; /* Di atas sidebar */
+    box-shadow: var(--shadow-medium);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: all 0.3s ease, left 0.4s ease-in-out;
+}
+
+#toggle-sidebar .fas {
+    font-size: 1.2rem; /* Ukuran ikon lebih besar */
+}
+
+#toggle-sidebar:hover {
+    background-color: var(--dark-blue);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: var(--shadow-strong);
+    transform: scale(1.1); /* Sedikit membesar saat hover */
+}
+
+#toggle-sidebar:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+}
+
+/* Memindahkan tombol toggle saat sidebar terbuka (membutuhkan JS untuk menambahkan kelas `sidebar-open` ke body) */
+body.sidebar-open #toggle-sidebar {
+    left: 265px; /* Lebar sidebar (250px) + sedikit jarak (15px) */
+}
+
+/* --- 5. Gaya Footer --- */
+footer {
+    background-color: var(--text-dark);
+    color: var(--bg-white);
+    text-align: center;
+    padding: 18px; /* Padding sedikit lebih besar */
+    width: 100%;
+    position: relative;
+    bottom: 0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0; /* Mencegah footer menyusut */
+}
+
+footer p {
+    margin: 0;
+    font-size: 15px; /* Ukuran font sedikit lebih besar */
+}
+
+/* --- 6. Tombol Gulir ke Atas --- */
+#scrollTopButton {
+    display: none; /* Sembunyikan secara default */
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    z-index: 99;
+    border: none;
+    background-color: var(--secondary-blue-gray);
+    color: var(--bg-white);
+    cursor: pointer;
+    padding: 14px; /* Padding sedikit lebih besar */
+    border-radius: 50%; /* Tombol bulat */
+    font-size: 22px; /* Ukuran ikon lebih besar */
+    box-shadow: var(--shadow-medium);
+    transition: all 0.3s ease; /* Transisi untuk semua properti */
+}
+
+#scrollTopButton:hover {
+    background-color: var(--darker-secondary-blue-gray);
+    transform: translateY(-3px) scale(1.1); /* Efek naik dan membesar */
+    box-shadow: var(--shadow-strong); /* Bayangan lebih kuat saat hover */
+}
+
+/* --- 7. Gaya Tombol Umum --- */
+.btn-upload {
+    background-color: var(--primary-blue);
+    color: var(--bg-white);
+    border: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-radius: 8px; /* Sudut membulat yang lebih konsisten */
+    padding: 10px 20px; /* Padding yang lebih baik */
+    font-size: 1rem;
+}
+
+.btn-upload:hover {
+    background-color: var(--dark-blue);
+    color: var(--bg-white);
+    transform: translateY(-3px); /* Efek naik sedikit saat hover, lebih terasa */
+    box-shadow: var(--shadow-hover); /* Bayangan lebih kuat saat hover */
+}
+
+.btn-custom { /* Digunakan untuk tombol cari dan tombol aksi lainnya */
+    background-color: var(--primary-blue);
+    color: var(--bg-white);
+    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s; /* Tambahkan transisi untuk efek hover */
+    border-radius: 8px; /* Konsisten */
+    padding: 10px 15px; /* Padding yang konsisten */
+    font-size: 0.95rem;
+}
+
+.btn-custom:hover {
+    background-color: var(--dark-blue);
+    color: var(--bg-white);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-light);
+}
+
+.btn-secondary { /* Digunakan untuk tombol reset */
+    background-color: var(--secondary-blue-gray) !important;
+    color: var(--bg-white) !important;
+    border: none;
+    transition: background 0.3s, transform 0.2s, box-shadow 0.2s;
+    border-radius: 8px; /* Konsisten */
+    padding: 10px 15px;
+    font-size: 0.95rem;
+}
+
+.btn-secondary:hover, .btn-secondary:focus {
+    background-color: var(--darker-secondary-blue-gray) !important;
+    color: var(--bg-white) !important;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-light);
+}
+
+/* --- 8. Gaya Notifikasi (Alerts) & Modal --- */
+.alert-blue {
+    background-color: var(--secondary-blue-gray) !important;
+    color: var(--bg-white);
+    border: 1px solid var(--secondary-blue-gray);
+    border-radius: 8px;
+}
+
+.custom-alert {
+    padding: 0.6rem 1.2rem; /* Padding lebih besar */
+    margin: 0.8rem auto; /* Margin lebih besar */
+    max-width: 650px; /* Lebar maksimum sedikit lebih besar */
+    border-radius: 8px;
+    box-shadow: var(--shadow-light); /* Tambahkan bayangan */
+    font-size: 0.95rem; /* Ukuran font sedikit lebih besar */
+}
+
+.alert-close-btn {
+    padding: 0.2rem;
+    background: none;
+    border: none;
+    float: right;
+    font-size: 1.4rem; /* Ukuran tombol close lebih besar */
+    line-height: 1;
+    color: inherit;
+    opacity: 0.6; /* Opasitas sedikit lebih tinggi */
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.alert-close-btn:hover {
+    opacity: 1; /* Penuh saat hover */
+}
+
+.alert-custom-info {
+    background-color: var(--alert-info-bg);
+    border-color: var(--alert-info-border);
+    color: var(--alert-info-text);
+    margin-bottom: 1.5rem; /* Margin lebih besar */
+    padding: 1.2rem; /* Padding lebih besar */
+    border-radius: 8px;
+    box-shadow: var(--shadow-light); /* Tambahkan bayangan */
+}
+
+.modal-header.warning-header {
+    background-color: var(--warning-header-bg);
+    color: var(--warning-header-color);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    font-size: 1.25rem; /* Ukuran font header modal */
+    font-weight: 600;
+}
+
+/* --- 9. Gaya Breadcrumbs --- */
+.breadcrumb .breadcrumb-dashboard-link {
+    color: var(--secondary-blue-gray);
+    font-weight: 600;
+    transition: color 0.2s;
+    font-size: 1.05rem; /* Ukuran font sedikit lebih besar */
+}
+
+.breadcrumb-dashboard-link:hover {
+    color: var(--darker-secondary-blue-gray);
+    text-decoration: none;
+}
+
+/* --- 10. Gaya Umum untuk Tabel --- */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+}
+
+.table th, .table td {
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid var(--border-light);
+}
+
+.table thead th {
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* --- 11. Gaya Tabel Spesifik (Preprocessing, Labeling, Classification, Dataset) --- */
+
+
+/* Tabel Dataset (diperbarui untuk header teks hitam) */
+
+
+.dataset-table {
+    border: 2px solid var(--table-border); /* Tambahkan border ke tabel klasifikasi */
+    border-collapse: collapse; /* Pastikan border collapse */
+    min-width: 1200px;
+}
+
+.dataset-table thead {
+    background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+    color: var(--text-dark); /* Mengubah warna teks header menjadi hitam */
+    border-bottom: 3px solid var(--table-border); /* Membuat border bawah header lebih tebal */
+}
+
+.dataset-table th {
+    padding: 1.1rem; /* Padding lebih baik */
+    font-weight: 600;
+    border:3px solid var(--table-border); /* Border sel individu */
+    vertical-align: middle;
+    white-space: nowrap;
+    font-size: 1.05rem;
+}
+
+.dataset-table td {
+    padding: 0.9rem 1rem; /* Padding sedikit lebih nyaman */
+    vertical-align: middle;
+    border: 2px solid var(--table-border); /* Border sel individu */
+}
+
+.dataset-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.dataset-table-tbody tr:hover {
+    background-color: rgba(23, 162, 184, 0.1) !important; /* Hover lebih terlihat */
+    transition: background-color 0.2s;
+}
+.dataset-table .text-data {
+    max-width: 400px;
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
+    
+}
+
+.dataset-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.8rem; /* Margin sedikit lebih besar */
+    flex-wrap: wrap;
+    gap: 1.2rem; /* Jarak antar kontrol */
+}
+
+.search-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem; /* Jarak antar elemen kontrol pencarian */
+}
+
+.per-page-control {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+/* Tabel Pra-pemrosesan */
+.preprocessing-table {
+    border: 2px solid var(--table-border); /* Tambahkan border ke tabel klasifikasi */
+    border-collapse: collapse; /* Pastikan border collapse */
+    min-width: 1200px;
+}
+
+/* Perbaikan: Atur warna teks header dan border bawah untuk thead preprocessing */
+.preprocessing-table thead {
+    background:#e0e0e0;
+    color: var(--text-dark); /* Warna teks header hitam */
+    border-bottom: 3px solid var(--table-border); /* Border bawah tebal */
+
+}
+
+.preprocessing-table th{
+    text-align: left;
+    padding: 1.1rem;
+    font-weight: 600;
+    font-size: 1.05rem;
+    border: 3px solid var(--table-border); /* Border sel individu */
+    vertical-align: middle;
+}
+
+.preprocessing-table td {
+    padding: 0.9rem 1rem; /* Padding sedikit lebih nyaman */
+    vertical-align: middle;
+    border: 2px solid var(--table-border); /* Border sel individu */
+}
+
+.preprocessing-table tbody tr:hover {
+    background-color: rgba(23, 162, 184, 0.1) !important; /* Hover lebih terlihat */
+    transition: background-color 0.2s;
+}
+
+.preprocessing-table th.id-column {
+    width: 5%;
+    text-align: left;
+}
+
+.preprocessing-table th.text-column{
+    width: 30%;
+    text-align: left;
+}
+.preprocessing-table td.text-column {
+    max-width: 400px;
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
+}
+
+
+
+/* Form Display */
+.form-display-inline {
+    display: inline;
+}
+
+/* Labeling Table */
+.labeling-table {
+    border: 2px solid var(--table-border); /* Tambahkan border ke tabel klasifikasi */
+    border-collapse: collapse; /* Pastikan border collapse */
+    min-width: 1200px;
+}
+
+.labeling-table thead {
+    background:#e0e0e0;
+    color: var(--text-dark); /* Warna teks header hitam */
+    border-bottom: 3px solid var(--table-border); /* Border bawah tebal */
+}
+
+.labeling-table th{
+    text-align: center;
+    padding: 1.1rem;
+    font-weight: 600;
+    font-size: 1.05rem;
+    border: 3px solid var(--table-border); /* Border sel individu */
+    vertical-align: middle;
+}
+
+.labeling-table td {
+    vertical-align: middle;
+    border: 2px solid var(--table-border); /* Border sel individu */
+}
+
+.labeling-table th.clean-text-col {
+    width: 30%;
+    text-align: center;
+}
+
+.labeling-table th.label-col {
+    width: 12%;
+    text-align: center;
+}
+
+.labeling-table th.edit-col {
+    width: 13%;
+    text-align: center;
+}
+
+
+
+.labeling-table td.clean-text-cell {
+    max-width: 350px;
+    word-break: break-word;
+    padding: 15px;
+    text-align: left;
+}
+
+
+
+.labeling-table .label-select {
+    min-width: 120px;
+    margin-right: 0.5rem;
+    border-radius: 6px; /* Sudut lebih membulat */
+    padding: 0.4rem 0.6rem; /* Padding lebih baik */
+    border: 1px solid var(--border-light);
+}
+
+.labeling-table .btn-success {
+    padding: 0.3rem 0.6rem; /* Padding lebih baik */
+    line-height: 1.2;
+    border-radius: 6px;
+}
+
+/* Tabel Klasifikasi */
+.classification-table {
+    border: 1px solid var(--table-border); /* Tambahkan border ke tabel klasifikasi */
+    border-collapse: collapse; /* Pastikan border collapse */
+}
+
+.classification-table thead { /* Atur thead untuk tabel klasifikasi */
+    background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+    color: var(--text-dark); /* Warna teks header hitam */
+    border-bottom: 3px solid var(--table-border); /* Border bawah tebal */
+}
+
+.classification-table th {
+    text-align: center;
+    padding: 1.1rem;
+    font-weight: 600;
+    font-size: 1.05rem;
+    border: 1px solid var(--table-border); /* Border sel individu */
+    vertical-align: middle;
+}
+
+.classification-table td {
+    vertical-align: middle;
+    border: 1px solid var(--table-border); /* Border sel individu */
+    text-align: left;
+}
+
+.table-cell-text {
+    max-width: 350px;
+    word-break: break-word;
+}
+
+
+
+/* --- 12. Metrik & Badge --- */
+.total-data-highlight {
+    color: var(--accent-red);
+    background: none;
+    border-radius: 0;
+    padding: 0;
+    font-size: 2.8rem; /* Ukuran font lebih besar */
+    font-weight: 700;
+    margin: 0 auto 15px auto; /* Margin lebih besar */
+    width: 100%;
+    display: block;
+    text-align: center;
+}
+
+.metric-card {
+    background-color: #eef8fc; /* Latar belakang lebih terang */
+    border-radius: 0.5rem; /* Lebih membulat */
+    padding: 1rem; /* Padding lebih besar */
+    margin: 0.7rem 0;
+    box-shadow: var(--shadow-light);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-medium);
+}
+
+.metrics-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem;
+}
+
+.metric-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Gaya Badge Umum */
+.badge {
+    padding: 8px 15px; /* Padding lebih nyaman */
+    font-size: 0.95em; /* Sedikit lebih besar */
+    min-width: 90px; /* Memastikan badge memiliki lebar minimum */
+    border-radius: 25px; /* Badge lebih bulat */
+    font-weight: 600; /* Lebih tebal */
+    text-transform: uppercase; /* Huruf kapital */
+    letter-spacing: 0.5px; /* Sedikit jarak antar huruf */
+}
+
+.feature-badges {
+    display: flex;
+    gap: 0.6rem; /* Jarak antar badge fitur */
+    flex-wrap: wrap;
+    margin: 0.8rem 0;
+}
+
+.feature-badges .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.6rem 1.2rem; /* Padding lebih besar */
+}
+
+/* Badge Polaritas */
+.polarity-positif {
+    background-color: var(--polarity-positif);
+    color: var(--bg-white);
+}
+
+.polarity-negatif {
+    background-color: var(--polarity-negatif);
+    color: var(--bg-white);
+}
+
+/* Badge Netralitas */
+.polarity-netral {
+    background-color: var(--polarity-netral);
+    color: var(--bg-white);
+}
+
+/* Badge Subjektivitas */
+.subjectivity-opini {
+    background-color: var(--subjectivity-opini);
+    color: var(--bg-white);
+}
+
+.subjectivity-faktual {
+    background-color: var(--subjectivity-faktual);
+    color: var(--bg-white);
+}
+
+/* --- 13. Matriks Kebingungan (Confusion Matrix) --- */
+.confusion-matrix {
+    min-width: 550px; /* Lebar minimum sedikit lebih besar */
+    border: 2px solid var(--primary-blue);
+    border-radius: 10px; /* Sudut lebih membulat */
+    overflow: hidden;
+    box-shadow: var(--shadow-medium); /* Tambahkan bayangan */
+}
+
+.confusion-matrix thead {
+    background-color: var(--primary-blue);
+    color: var(--bg-white);
+}
+
+.confusion-matrix-header {
+    background-color: #d1ecf1;
+    font-weight: 600;
+}
+
+.confusion-matrix th.vertical-text {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    padding: 0.75rem 0.5rem; /* Sesuaikan padding */
+}
+
+.confusion-matrix-cell {
+    min-width: 90px;
+    border: 1px solid var(--table-border); /* Border lebih halus */
+    padding: 0.8rem; /* Padding lebih baik */
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.confusion-matrix-cell.match, .match-cell {
+    background-color: var(--match-cell-bg);
+    font-weight: bold;
+}
+
+.confusion-matrix-cell.empty, .zero-cell {
+    background-color: var(--bg-light);
+    color: var(--text-muted); /* Teks abu-abu untuk sel kosong */
+}
+
+.confusion-matrix-cell.mismatch, .mismatch-cell {
+    background-color: var(--mismatch-cell-bg);
+}
+
+.confusion-matrix-sum, .sum-cell {
+    background-color: var(--sum-cell-bg);
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+/* --- 14. Visualisasi Wordcloud --- */
+.wordcloud-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 40px; /* Jarak antar kartu lebih besar */
+    margin-bottom: 40px;
+}
+.wordcloud-card {
+    background: var(--bg-white);
+    border-radius: 20px; /* Lebih membulat */
+    box-shadow: var(--shadow-medium);
+    padding: 20px 15px 15px 15px; /* Padding lebih baik */
+    margin: 0 10px 20px 10px;
+    width: 420px; /* Lebar sedikit lebih besar */
+    max-width: 100%;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.wordcloud-card:hover {
+    transform: translateY(-8px); /* Efek naik lebih terasa saat hover */
+    box-shadow: var(--shadow-strong);
+}
+.wordcloud-card img {
+    margin: 0 auto;
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+.wordcloud-card h5 {
+    margin-bottom: 15px;
+    font-size: 1.2rem; /* Judul lebih besar */
+    color: var(--secondary-blue-gray);
+    font-weight: 600;
+}
+
+/* --- 15. Gaya Formulir & Input --- */
+.form-display-inline {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.search-input {
+    width: 280px; /* Lebar input sedikit lebih besar */
+    border-radius: 8px; /* Lebih membulat */
+    border: 1px solid var(--border-light);
+    padding: 0.6rem 1rem; /* Padding lebih nyaman */
+    font-size: 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.35); /* Bayangan fokus lebih menonjol */
+}
+
+
+.ratio-selection-form {
+    max-width: 650px; /* Lebar sedikit lebih besar */
+    margin: 0 auto;
+    padding: 1.5rem; /* Padding lebih besar */
+    background: var(--bg-white);
+    border-radius: 10px; /* Lebih membulat */
+    box-shadow: var(--shadow-medium);
+}
+
+.ratio-info-text {
+    color: var(--polarity-netral);
+    font-size: 0.95rem; /* Sedikit lebih besar */
+    margin-top: 0.8rem; /* Margin sedikit lebih besar */
+}
+
+/* --- 16. Gaya Kartu & Kontainer Umum --- */
+.page-container {
+    min-height: 90vh;
+    background-color: var(--bg-light);
+}
+
+.content-wrapper {
+    width: 85%; /* Lebar sedikit lebih besar */
+    max-width: 1280px; /* Lebar maksimum lebih besar */
+    background-color: var(--bg-white);
+    border-radius: 0.75rem; /* Lebih membulat */
+    box-shadow: var(--shadow-strong);
+    padding: 3.5rem; /* Padding lebih besar */
+}
+
+.content-wrapper-wide {
+    width: 95%;
+    max-width: 1700px; /* Lebar maksimum lebih besar */
+}
+
+.custom-card {
+    border-radius: 18px; /* Lebih membulat */
+    box-shadow: var(--shadow-medium);
+    margin-bottom: 1.8rem; /* Margin lebih besar */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.custom-card:hover {
+    transform: translateY(-5px); /* Efek naik lebih terasa */
+    box-shadow: var(--shadow-strong);
+}
+
+.dataset-info-card {
+    margin-bottom: 1.5rem; /* Margin lebih besar */
+    border-radius: 10px; /* Konsisten dengan card lain */
+    box-shadow: var(--shadow-light);
+}
+
+.dataset-info-card .card-body {
+    padding: 1.5rem; /* Padding lebih besar */
+}
+
+.dataset-info-title {
+    font-size: 1.2rem; /* Ukuran font lebih besar */
+    font-weight: 600;
+    margin-bottom: 1.2rem; /* Margin lebih besar */
+}
+
+/* --- 17. Gaya Status Loading --- */
+.loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 2rem; /* Margin lebih besar */
+    font-size: 1.1rem;
+    color: var(--secondary-blue-gray);
+}
+
+.loading-indicator .spinner-border {
+    margin-bottom: 1rem; /* Margin lebih besar */
+    width: 3.5rem; /* Ukuran spinner lebih besar */
+    height: 3.5rem;
+    border-width: 0.3em; /* Ketebalan spinner */
+    color: var(--primary-blue);
+}
+
+.status-message {
+    color: var(--text-default);
+    font-weight: 500;
+}
+
+.loading-overlay { /* Overlay penuh layar saat loading */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.98); /* Latar belakang lebih solid */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000; /* Z-index sangat tinggi untuk memastikan di atas semua */
+    pointer-events: all;
+}
+
+.loading-content {
+    background-color: var(--bg-white);
+    padding: 3rem; /* Padding lebih besar */
+    border-radius: 15px; /* Lebih membulat */
+    text-align: center;
+    box-shadow: var(--shadow-strong);
+    font-size: 1.3rem;
+    color: var(--secondary-blue-gray);
+}
+
+body.loading {
+    overflow: hidden;
+}
+
+/* --- 18. Gaya Grafik --- */
+.chart-container {
+    max-width: 550px; /* Lebar maksimum sedikit lebih besar */
+    margin: 0 auto;
+    background: var(--bg-white);
+    border-radius: 10px; /* Lebih membulat */
+    box-shadow: var(--shadow-medium);
+    padding: 1.5rem; /* Padding lebih besar */
+}
+
+.chart-canvas {
+    max-width: 100%; /* Memastikan responsif */
+    height: auto;
+    display: block;
+}
+
+.chart-section {
+    margin-bottom: 2.5rem; /* Margin lebih besar */
+    padding: 1.5rem; /* Padding lebih besar */
+    background-color: var(--bg-white);
+    border-radius: 10px; /* Lebih membulat */
+    box-shadow: var(--shadow-medium);
+}
+
+/* --- 19. Gaya Khusus Dashboard --- */
+.dashboard-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg-light) 0%, #e9ecef 100%);
+    padding: 3rem 0;
+}
+
+.welcome-section {
+    background: var(--bg-white);
+    padding: 3.5rem 0; /* Padding lebih besar */
+    border-radius: 18px; /* Lebih membulat */
+    box-shadow: var(--shadow-medium);
+    margin: 0 2.5rem; /* Margin lebih besar */
+}
+
+.dashboard-title {
+    font-family: 'Google Sans', sans-serif;
+    font-size: 3rem; /* Ukuran lebih besar */
+    font-weight: 700;
+    color: var(--secondary-blue-gray);
+    line-height: 1.3;
+    margin-bottom: 0.8rem;
+}
+
+.highlight-text {
+    color: var(--primary-blue);
+    font-weight: 700;
+}
+
+.author-info {
+    margin-top: 2.5rem; /* Margin lebih besar */
+    font-size: 1.2rem; /* Ukuran font lebih besar */
+    color: var(--text-default);
+}
+
+.author-name {
+    color: var(--primary-blue);
+    font-weight: 600;
+}
+
+.dashboard-card {
+    background: var(--bg-white);
+    border-radius: 18px; /* Lebih membulat */
+    box-shadow: var(--shadow-medium);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    padding: 2.5rem; /* Padding lebih besar */
+}
+
+.dashboard-card:hover {
+    transform: translateY(-8px); /* Efek naik lebih terasa */
+    box-shadow: var(--shadow-strong);
+}
+
+.card-icon {
+    font-size: 3.5rem; /* Ukuran ikon lebih besar */
+    color: var(--primary-blue);
+    margin-bottom: 1.2rem; /* Margin lebih besar */
+}
+
+.total-count {
+    font-size: 3.5rem; /* Ukuran count lebih besar */
+    font-weight: 700;
+    color: var(--primary-blue);
+}
+
+.quick-links {
+    margin-top: 2.5rem; /* Margin lebih besar */
+}
+
+.dashboard-link-card {
+    display: block;
+    background: var(--bg-white);
+    padding: 2.5rem; /* Padding lebih besar */
+    border-radius: 15px; /* Lebih membulat */
+    text-align: center;
+    color: var(--secondary-blue-gray);
+    transition: all 0.3s ease, box-shadow 0.3s ease;
+    text-decoration: none;
+    height: 100%;
+    box-shadow: var(--shadow-light);
+}
+
+.dashboard-link-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-strong);
+    text-decoration: none;
+    color: var(--primary-blue);
+}
+
+.link-icon {
+    font-size: 3rem; /* Ukuran ikon lebih besar */
+    color: var(--primary-blue);
+    margin-bottom: 1.2rem;
+}
+
+.dashboard-link-card h5 {
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+    font-size: 1.3rem; /* Ukuran font lebih besar */
+}
+
+.dashboard-link-card p {
+    color: var(--polarity-netral);
+    font-size: 1rem; /* Ukuran font lebih besar */
+    margin-bottom: 0;
+}
+
+/* --- 20. Gaya Halaman Spesifik Lainnya --- */
+
+/* Halaman dengan Tata Letak Kolom (misalnya halaman pelabelan) */
+.page-columns {
+    display: flex;
+    gap: 2.5rem; /* Jarak antar kolom lebih besar */
+    padding: 2.5rem; /* Padding lebih besar */
+    background-color: var(--bg-light);
+    min-height: calc(100vh - 80px); /* Sesuaikan tinggi dengan tinggi footer yang mungkin berubah */
+}
+
+.column {
+    flex: 1;
+    background: var(--bg-white);
+    border-radius: 10px; /* Lebih membulat */
+    box-shadow: var(--shadow-medium);
+    display: flex;
+    flex-direction: column;
+}
+
+.column-header {
+    padding: 1.8rem; /* Padding lebih besar */
+    background: var(--bg-light);
+    border-bottom: 2px solid var(--border-light);
+    border-radius: 10px 10px 0 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--secondary-blue-gray);
+}
+
+.column-content {
+    padding: 1.8rem; /* Padding lebih besar */
+    flex: 1;
+    overflow: hidden;
+}
+
+.table-wrapper {
+    height: calc(100vh - 300px); /* Sesuaikan tinggi tabel berdasarkan elemen sekitarnya */
+    overflow-y: auto;
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-light);
+    z-index: 1;
+}
+
+.upload-form {
+    margin-top: 1.5rem; /* Margin lebih besar */
+    padding: 1.8rem; /* Padding lebih besar */
+    background: var(--bg-light);
+    border-radius: 10px; /* Lebih membulat */
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-light);
+}
+
+.label-badge {
+    padding: 0.6rem 1.2rem; /* Padding lebih baik */
+    font-size: 0.95rem; /* Lebih besar */
+    border-radius: 25px; /* Lebih bulat */
+}
+
+/* Sembunyikan form pelabelan secara default */
+#labelingForm {
+    display: none;
+}
+
+/* Halaman Pemilihan Rasio Uji */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Ukuran kolom sedikit lebih besar */
+    gap: 1.5rem; /* Jarak antar item lebih besar */
+    margin: 1.5rem 0;
+}
+
+.info-item {
+    text-align: center;
+    padding: 1rem; /* Padding lebih besar */
+    border-radius: 10px; /* Lebih membulat */
+    background: var(--bg-white);
+    box-shadow: var(--shadow-light);
+}
+
+.info-label {
+    color: var(--polarity-netral);
+    font-size: 0.9rem; /* Sedikit lebih besar */
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+.info-value {
+    font-weight: bold;
+    font-size: 1.4rem; /* Ukuran nilai lebih besar */
+    color: var(--secondary-blue-gray);
+}
+
+.feature-badge-container {
+    display: flex;
+    justify-content: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin: 1.5rem 0;
+}
+
+.feature-badge {
+    padding: 0.6rem 1.2rem;
+    border-radius: 0.3rem;
+    font-size: 0.9rem;
+}
+
+.classification-method-group {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem; /* Jarak antar metode lebih besar */
+    margin: 1.5rem 0;
+}
+
+/* KODE BARU: Styling untuk Kartu Statistik (Stat Card) */
+.stat-card {
+    border: none;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px); /* Efek mengangkat kartu saat disentuh mouse */
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.stat-card .card-subtitle {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* KODE BARU: Warna semi-transparan untuk ikon agar tidak terlalu mencolok */
+.text-success-light {
+    color: rgba(40, 167, 69, 0.3);
+}
+
+.text-danger-light {
+    color: rgba(220, 53, 69, 0.3);
+}
+
+.text-secondary-light {
+    color: rgba(108, 117, 125, 0.3);
+}
+
+
+/* Halaman Visualisasi */
+.visualization-container {
+    min-height: 90vh;
+    background-color: var(--bg-light);
+    padding: 2.5rem 1.5rem; /* Padding lebih besar */
+}
+
+.visualization-content {
+    width: 95%;
+    max-width: 1700px;
+    margin: 0 auto;
+}
+
+.viz-form-inline {
+    display: inline-block;
+    margin-right: 1.5rem; /* Margin lebih besar */
+}
+
+.viz-button {
+    margin-left: 15px; /* Margin lebih besar */
+}
+
+/* Halaman Prediksi Kata */
+.prediction-container {
+    min-height: 90vh;
+    background-color: var(--bg-light);
+}
+
+.prediction-content {
+    width: 85%; /* Lebar sedikit lebih besar */
+    max-width: 750px; /* Lebar maksimum lebih besar */
+    background-color: var(--bg-white);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-strong);
+    padding: 3.5rem; /* Padding lebih besar */
+}
+
+/* Custom Heading Styles */
+.app-title {
+    font-family: 'Google Sans', sans-serif;
+}
+
+.app-title-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.app-title-link:hover {
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* --- 22. Penyesuaian Responsif (Media Queries) --- */
+@media (min-width: 992px) {
+    .border-right-lg {
+        border-right: 1px solid #e9ecef;
+    }
+}
+
+@media (max-width: 1200px) {
+    #sidebar {
+        width: 200px;
+    }
+    #main-content {
+        margin-left: 200px;
+        width: calc(100% - 200px);
+    }
+}
+
+@media (max-width: 900px) {
+    #sidebar {
+        width: 160px;
+    }
+    #main-content {
+        margin-left: 160px;
+        width: calc(100% - 160px);
+    }
+}
+
+@media (max-width: 768px) {
+    html, body, #main-content, #sidebar, .container-fluid, .content-wrapper, .content-wrapper-wide, .prediction-content {
+        box-sizing: border-box;
+    }
+    #sidebar {
+        width: 100vw !important;
+        left: 0 !important;
+        border-radius: 0 !important;
+        transform: translateX(-100vw);
+        z-index: 1000;
+    }
+    #sidebar.open, body.sidebar-open #sidebar {
+        transform: translateX(0) !important;
+    }
+    #main-content {
+        margin-left: 0 !important;
+        width: 100vw !important;
+        min-width: 0 !important;
+        padding: 0 !important;
+    }
+    .container-fluid, .content-wrapper, .content-wrapper-wide, .prediction-content {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    .content-wrapper, .content-wrapper-wide {
+        margin: 0 !important;
+        padding: 0 0.5rem !important;
+    }
+    #toggle-sidebar {
+        left: 15px !important;
+        width: 40px !important;
+        height: 40px !important;
+        background-color: var(--primary-blue);
+        color: var(--bg-white);
+        opacity: 1;
+    }
+    #toggle-sidebar .fas {
+        font-size: 1rem !important;
+    }
+    .wordcloud-card {
+        width: 90vw !important;
+        max-width: 350px !important;
+    }
+    .wordcloud-row {
+        gap: 16px !important;
+    }
+    .page-columns {
+        flex-direction: column !important;
+        gap: 1.5rem !important;
+    }
+    .column-content {
+        padding: 1.5rem !important;
+    }
+    .table-wrapper {
+        height: auto !important;
+        overflow-y: visible !important;
+    }
+    .custom-alert {
+        max-width: 90vw !important;
+        margin: 0.5rem 1rem !important;
+    }
+    .dashboard-title {
+        font-size: 2.2rem !important;
+    }
+    .dashboard-card {
+        padding: 2rem !important;
+    }
+    .card-icon {
+        font-size: 3rem !important;
+    }
+    .total-count {
+        font-size: 3rem !important;
+    }
+    .dashboard-link-card {
+        padding: 2rem !important;
+    }
+    .link-icon {
+        font-size: 2.5rem !important;
+    }
+    .prediction-content {
+        width: 90vw !important;
+        padding: 2.5rem !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .dashboard-card, .prediction-content, .welcome-section {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        padding: 1rem !important;
+    }
+}
+
+/* Confusion Matrix & Evaluation Table Borders */
+.classification-table th,
+.classification-table td,
+.confusion-matrix th,
+.confusion-matrix td {
+    border: 1px solid #000000 !important;
+}
+
+.classification-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.confusion-matrix {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.sum-cell {
+    background-color: var(--sum-cell-bg) !important;
+    min-width: 90px;
+}
+
+/* --- RESPONSIVE TABLE PATCH --- */
+.dataset-table,
+.preprocessing-table,
+.labeling-table,
+.classification-table {
+    width: 100% !important;
+    min-width: unset !important;
+    max-width: 100vw !important;
+    table-layout: auto !important;
+}
+
+.table-wrapper, .table-responsive {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+    padding-bottom: 1rem;
+}
+
+@media (max-width: 1200px) {
+    .dataset-table,
+    .preprocessing-table,
+    .labeling-table,
+    .classification-table {
+        font-size: 0.95rem !important;
+    }
+}
+@media (max-width: 900px) {
+    .dataset-table,
+    .preprocessing-table,
+    .labeling-table,
+    .classification-table {
+        font-size: 0.9rem !important;
+    }
+}
+@media (max-width: 768px) {
+    .dataset-table,
+    .preprocessing-table,
+    .labeling-table,
+    .classification-table {
+        font-size: 0.85rem !important;
+    }
+}
+
+/* --- SIDEBAR OVERLAY PATCH FOR MOBILE --- */
+@media (max-width: 768px) {
+    #sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 85vw !important;
+        max-width: 320px !important;
+        height: 100vh !important;
+        z-index: 2001 !important;
+        background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue)) !important;
+        box-shadow: 2px 0 16px rgba(0,0,0,0.18);
+        transform: translateX(-100vw);
+        transition: transform 0.4s cubic-bezier(.4,0,.2,1);
+    }
+    #sidebar.open, body.sidebar-open #sidebar {
+        transform: translateX(0) !important;
+    }
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.35);
+        z-index: 2000;
+        transition: opacity 0.3s;
+        opacity: 0;
+    }
+    .sidebar-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+    #main-content {
+        margin-left: 0 !important;
+        width: 100vw !important;
+        min-width: 0 !important;
+        padding: 0 !important;
+    }
+}
+
+/* --- 18. Media Queries --- */
+/* Media queries untuk semua halaman */
+@media (max-width: 768px) {
+    /* Dashboard */
+    .dashboard-stat-card {
+        margin-bottom: 1rem;
+    }
+    
+    /* Halaman label */
+    .labeling-table td.clean-text-cell {
+        max-width: 200px;
+    }
+    
+    .labeling-table .label-select {
+        min-width: 100px;
+        margin-right: 0.3rem;
+    }
+    
+    /* Halaman klasifikasi */
+    .classification-results-card {
+        overflow-x: auto;
+    }
+    
+    /* Halaman input data */
+    .upload-card {
+        padding: 1rem;
+    }
+    
+    /* Halaman preprocessing */
+    .preprocessing-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    /* Halaman split data */
+    .split-options {
+        flex-direction: column;
+    }
+    
+    /* Halaman visualisasi */
+    .wordcloud-card {
+        width: 100%;
+        margin: 0 0 1.5rem 0;
+    }
+    
+    /* Halaman prediksi kata */
+    .prediction-form {
+        flex-direction: column;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 991px) {
+    /* Responsive adjustments for medium screens */
+    .wordcloud-card {
+        width: 380px;
+    }
+    
+    .labeling-table td.clean-text-cell {
+        max-width: 250px;
+    }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+    /* Responsive adjustments for large screens */
+    .wordcloud-card {
+        width: 400px;
+    }
+.comparison-results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.label-source-badge {
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.4em 0.8em;
+    border-radius: 15px;
+}
+}
+/* --- Gaya untuk Loading Overlay --- */
+.loading-overlay-viz {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1050; /* Pastikan di atas konten lain */
+}
+
+.loading-spinner {
+    border: 8px solid #f3f3f3; /* Light grey */
+    border-top: 8px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

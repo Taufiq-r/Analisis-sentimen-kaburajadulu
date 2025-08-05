@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid d-flex justify-content-center align-items-center page-container visualization-container">
+    <div class="content-wrapper content-wrapper-wide">
+        <div id="loadingOverlay" class="loading-overlay d-none">
+            <div class="loading-content">
+                <div class="spinner-border text-info mb-3 spinner-lg" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <h5 class="mb-2">Sedang Membuat Visualisasi</h5>
+                <p class="mb-0 text-muted">Mohon tunggu, visualisasi sedang dibuat dan diperbarui...</p>
+            </div>
+        </div>
+
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}" class="breadcrumb-dashboard-link"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Visualisasi Sentimen</li>
+            </ol>
+        </nav>
+        <h2 class="mt-3 mb-4 text-center font-weight-bold">Visualisasi Hasil Analisis Sentimen</h2>
+        <p class="mb-4 text-center text-secondary lead">Wordcloud dan distribusi label berdasarkan model klasifikasi dan sumber data.</p>
+        
+        <div class="text-center mb-4">
+            <div id="generateButtonContainer">
+                <form id="visualizationForm" method="post" action="{{ url_for('utils.sentiment_visualization') }}" class="viz-form-inline">
+                    <input type="hidden" name="action" value="generate_visuals">
+                    <button id="generateButton" type="submit" class="btn btn-custom">
+                        <span class="normal-text">
+                            <i class="fas fa-sync-alt mr-2"></i>Generate/Update Semua Visualisasi
+                        </span>
+                        <span class="loading-text d-none">
+                            <span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                            Sedang memproses...
+                        </span>
+                    </button>
+                </form>
+            </div>
+            <button type="button" class="btn btn-danger viz-button" data-toggle="modal" data-target="#resetVisualizationModal" {% if not can_reset %}disabled{% endif %}>
+                <i class="fas fa-trash-alt"></i> Reset Semua Visualisasi
+            </button>
+        </div>
+
+        <div class="modal fade" id="resetVisualizationModal" tabindex="-1" aria-labelledby="resetVisualizationModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header warning-header">
+                        <h5 class="modal-title" id="resetVisualizationModalLabel">Konfirmasi Reset Visualisasi</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        Apakah Anda yakin ingin menghapus semua gambar wordcloud dan data chart? Tindakan ini tidak dapat dibatalkan.
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                        <form method="post" action="{{ url_for('utils.sentiment_visualization') }}" class="form-display-inline">
+                            <input type="hidden" name="action" value="reset_visuals">
+                            <button type="submit" class="btn btn-danger">Ya, Reset</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-lg-6 mb-4">
+                <div class="custom-card h-100">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h3 class="mb-0"><i class="fas fa-brain mr-2"></i>Naive Bayes</h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs nav-fill mb-3" id="nb-tab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <a class="nav-link active" id="nb-otomatis-tab" data-toggle="tab" href="#nb-otomatis" role="tab" aria-controls="nb-otomatis" aria-selected="true">Otomatis</a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a class="nav-link" id="nb-pakar-tab" data-toggle="tab" href="#nb-pakar" role="tab" aria-controls="nb-pakar" aria-selected="false">Pakar</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="nb-tabContent">
+                            {% for source in ['otomatis', 'pakar'] %}
+                            <div class="tab-pane fade {% if source == 'otomatis' %}show active{% endif %}" id="nb-{{ source }}" role="tabpanel" aria-labelledby="nb-{{ source }}-tab">
+                                {% set viz_data = visuals.get('nb_' + source, {}) %}
+                                {% if not viz_data.has_data and not viz_data.has_wordclouds %}
+                                    <p class="text-muted text-center mt-4">Belum ada data visualisasi untuk Naive Bayes ({{ source }}).</p>
+                                {% else %}
+                                    <h5 class="text-center font-weight-bold mb-3">Wordcloud</h5>
+                                    <div class="wordcloud-row mb-3">
+                                        {% for label_key, label_name, badge in [('positif', 'Positif', 'polarity-positif'), ('negatif', 'Negatif', 'polarity-negatif'), ('netral', 'Netral', 'polarity-netral')] %}
+                                        <div class="wordcloud-card">
+                                            <div class="card-header bg-white text-center py-2"><span class="badge {{ badge }} px-3 py-2">{{ label_name }}</span></div>
+                                            <div class="card-body p-2 d-flex align-items-center justify-content-center">
+                                                {% if viz_data.wordclouds_relative_paths.get(label_key) %}
+                                                    <img src="{{ url_for('static', filename=viz_data.wordclouds_relative_paths[label_key]) }}?t={{ range(1,100000)|random }}" alt="Wordcloud {{ label_name }}" class="img-fluid rounded shadow-sm">
+                                                {% else %}
+                                                    <div class="wordcloud-placeholder text-muted small">Tidak Tersedia</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <hr class="my-4">
+                                    <h5 class="text-center font-weight-bold mb-3 mt-4">Distribusi Label Prediksi</h5>
+                                    <div class="chart-section">
+                                        {% if viz_data.has_data %}
+                                            <canvas id="chart_nb_{{ source }}" class="chart-canvas"></canvas>
+                                        {% else %}
+                                            <p class="text-muted text-center small mb-0">Grafik belum tersedia.</p>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="custom-card h-100">
+                    <div class="card-header bg-success text-white text-center">
+                        <h3 class="mb-0"><i class="fas fa-cogs mr-2"></i>SVM</h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs nav-fill mb-3" id="svm-tab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <a class="nav-link active" id="svm-otomatis-tab" data-toggle="tab" href="#svm-otomatis" role="tab" aria-controls="svm-otomatis" aria-selected="true">Otomatis</a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a class="nav-link" id="svm-pakar-tab" data-toggle="tab" href="#svm-pakar" role="tab" aria-controls="svm-pakar" aria-selected="false">Pakar</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="svm-tabContent">
+                            {% for source in ['otomatis', 'pakar'] %}
+                            <div class="tab-pane fade {% if source == 'otomatis' %}show active{% endif %}" id="svm-{{ source }}" role="tabpanel" aria-labelledby="svm-{{ source }}-tab">
+                                {% set viz_data = visuals.get('svm_' + source, {}) %}
+                                {% if not viz_data.has_data and not viz_data.has_wordclouds %}
+                                    <p class="text-muted text-center mt-4">Belum ada data visualisasi untuk SVM ({{ source }}).</p>
+                                {% else %}
+                                    <h5 class="text-center font-weight-bold mb-3">Wordcloud</h5>
+                                    <div class="wordcloud-row mb-3">
+                                        {% for label_key, label_name, badge in [('positif', 'Positif', 'polarity-positif'), ('negatif', 'Negatif', 'polarity-negatif'), ('netral', 'Netral', 'polarity-netral')] %}
+                                        <div class="wordcloud-card">
+                                            <div class="card-header bg-white text-center py-2"><span class="badge {{ badge }} px-3 py-2">{{ label_name }}</span></div>
+                                            <div class="card-body p-2 d-flex align-items-center justify-content-center">
+                                                {% if viz_data.wordclouds_relative_paths.get(label_key) %}
+                                                    <img src="{{ url_for('static', filename=viz_data.wordclouds_relative_paths[label_key]) }}?t={{ range(1,100000)|random }}" alt="Wordcloud {{ label_name }}" class="img-fluid rounded shadow-sm">
+                                                {% else %}
+                                                    <div class="wordcloud-placeholder text-muted small">Tidak Tersedia</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <hr class="my-4">
+                                    <h5 class="text-center font-weight-bold mb-3 mt-4">Distribusi Label Prediksi</h5>
+                                    <div class="chart-section">
+                                        {% if viz_data.has_data %}
+                                            <canvas id="chart_svm_{{ source }}" class="chart-canvas"></canvas>
+                                        {% else %}
+                                            <p class="text-muted text-center small mb-0">Grafik belum tersedia.</p>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Loading functionality for the generate button
+    var form = document.getElementById('visualizationForm');
+    var generateButton = document.getElementById('generateButton');
+    var loadingOverlay = document.getElementById('loadingOverlay');
+    var generateButtonContainer = document.getElementById('generateButtonContainer');
+    var normalText = generateButton ? generateButton.querySelector('.normal-text') : null;
+    var loadingText = generateButton ? generateButton.querySelector('.loading-text') : null;
+
+    if (form && generateButton && loadingOverlay) {
+        form.addEventListener('submit', function(e) {
+            // Don't prevent default - let form submit normally
+            // Just show loading state immediately
+            generateButton.disabled = true;
+            if (normalText) normalText.classList.add('d-none');
+            if (loadingText) loadingText.classList.remove('d-none');
+            
+            // Show loading overlay
+            loadingOverlay.classList.remove('d-none');
+            
+            // Hide generate button container
+            if (generateButtonContainer) generateButtonContainer.classList.add('d-none');
+        });
+    }
+
+    // Data dari backend
+    const visuals = JSON.parse('{{ visuals | tojson | safe }}');
+
+    // Fungsi untuk membuat chart
+    function createBarChart(canvasId, chartData, modelLabel) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas || !chartData || !chartData.has_data) {
+            return;
+        }
+        const ctx = canvas.getContext('2d');
+        const labels = ['Positif', 'Negatif', 'Netral'];
+        const data = chartData.label_counts_js || [0, 0, 0];
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: `Jumlah Data (${modelLabel})`,
+                    data: data,
+                    backgroundColor: [
+                        getComputedStyle(document.documentElement).getPropertyValue('--polarity-positif').trim() + 'B3',
+                        getComputedStyle(document.documentElement).getPropertyValue('--polarity-negatif').trim() + 'B3',
+                        getComputedStyle(document.documentElement).getPropertyValue('--polarity-netral').trim() + 'B3'
+                    ],
+                    borderColor: [
+                        getComputedStyle(document.documentElement).getPropertyValue('--polarity-positif').trim(),
+                        getComputedStyle(document.documentElement).getPropertyValue('--polarity-negatif').trim(),
+                        getComputedStyle(document.documentElement).getPropertyValue('--polarity-netral').trim()
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: Math.max(1, Math.ceil(Math.max(...data, 0) / 8)),
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Inisialisasi semua 4 chart
+    createBarChart('chart_nb_otomatis', visuals.nb_otomatis, 'NB Otomatis');
+    createBarChart('chart_nb_pakar', visuals.nb_pakar, 'NB Pakar');
+    createBarChart('chart_svm_otomatis', visuals.svm_otomatis, 'SVM Otomatis');
+    createBarChart('chart_svm_pakar', visuals.svm_pakar, 'SVM Pakar');
+});
+</script>
+{% endblock %}

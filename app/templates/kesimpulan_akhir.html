@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ title }} - Analisis Sentimen
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="content-wrapper p-lg-5 p-4 mx-auto" style="max-width: 1200px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}" class="breadcrumb-dashboard-link"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Kesimpulan Akhir</li>
+            </ol>
+        </nav>       
+        <div class="welcome-section text-center mb-5" style="background: none; box-shadow: none; padding: 1rem 0;">
+            <h2 class="dashboard-title" style="font-size: 2.5rem;">Kesimpulan Berdasarkan Prediksi Benar Terbanyak</h2>
+            <p class="lead" style="font-size: 1.15rem; color: #555;">
+                Perbandingan performa model berdasarkan jumlah absolut data yang berhasil diprediksi dengan benar.
+            </p>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card custom-card h-100">
+                    <div class="card-header text-center" style="background-color: #e3f2fd; border-bottom: 2px solid var(--primary-blue);">
+                        <h4 class="font-weight-bold mb-0"><i class="fas fa-user-check mr-2"></i>Analisis dari Sumber Label Pakar</h4>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        {% if pakar %}
+                            <h5 class="text-center">Total Prediksi Benar</h5>
+                            <div class="row text-center my-3">
+                                <div class="col-6"><div class="metric-card {% if pakar.best_model_name == 'Naive Bayes' %}border border-success border-3{% endif %}"><h6>Naive Bayes</h6><p class="h3 font-weight-bold">{{ pakar.correct_nb }}</p></div></div>
+                                <div class="col-6"><div class="metric-card {% if pakar.best_model_name == 'SVM' %}border border-success border-3{% endif %}"><h6>SVM</h6><p class="h3 font-weight-bold">{{ pakar.correct_svm }}</p></div></div>
+                            </div>
+
+                            <div class="alert alert-success text-center">Model Terbaik: <strong>{{ pakar.best_model_name }}</strong> dengan <strong>{{ pakar.best_model_correct_count }}</strong> prediksi benar.</div>
+                            <hr>
+                            
+                            <h5 class="text-center mt-3">Detail Prediksi Benar (Model {{ pakar.best_model_name }})</h5>
+                            <div class="row mt-2 text-center">
+                                <div class="col-4"><p class="mb-0 font-weight-bold text-success">Positif</p><p class="h4">{{ pakar.correctly_predicted_pos }}</p></div>
+                                <div class="col-4"><p class="mb-0 font-weight-bold text-danger">Negatif</p><p class="h4">{{ pakar.correctly_predicted_neg }}</p></div>
+                                <div class="col-4"><p class="mb-0 font-weight-bold text-secondary">Netral</p><p class="h4">{{ pakar.correctly_predicted_neu }}</p></div>
+                            </div>
+
+                            <div class="alert alert-light text-center mt-auto pt-3">
+                                <p class="mb-1" style="font-size: 1.1rem;">Berdasarkan kategori prediksi benar terbanyak, sentimen cenderung <strong class="highlight-text">{{ pakar.dominant_sentiment }}</strong>.</p>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning text-center my-auto"><i class="fas fa-exclamation-triangle mr-2"></i>Belum ada hasil klasifikasi dari sumber "Label Pakar".</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="card custom-card h-100">
+                    <div class="card-header text-center" style="background-color: #e8f5e9; border-bottom: 2px solid #28a745;">
+                        <h4 class="font-weight-bold mb-0"><i class="fas fa-robot mr-2"></i>Analisis dari Sumber Label Otomatis</h4>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        {% if otomatis %}
+                            <h5 class="text-center">Total Prediksi Benar</h5>
+                            <div class="row text-center my-3">
+                                <div class="col-6"><div class="metric-card {% if otomatis.best_model_name == 'Naive Bayes' %}border border-success border-3{% endif %}"><h6>Naive Bayes</h6><p class="h3 font-weight-bold">{{ otomatis.correct_nb }}</p></div></div>
+                                <div class="col-6"><div class="metric-card {% if otomatis.best_model_name == 'SVM' %}border border-success border-3{% endif %}"><h6>SVM</h6><p class="h3 font-weight-bold">{{ otomatis.correct_svm }}</p></div></div>
+                            </div>
+                             <div class="alert alert-success text-center">Model Terbaik: <strong>{{ otomatis.best_model_name }}</strong> dengan <strong>{{ otomatis.best_model_correct_count }}</strong> prediksi benar.</div>
+                            <hr>
+
+                            <h5 class="text-center mt-3">Detail Prediksi Benar (Model {{ otomatis.best_model_name }})</h5>
+                            <div class="row mt-2 text-center">
+                                <div class="col-4"><p class="mb-0 font-weight-bold text-success">Positif</p><p class="h4">{{ otomatis.correctly_predicted_pos }}</p></div>
+                                <div class="col-4"><p class="mb-0 font-weight-bold text-danger">Negatif</p><p class="h4">{{ otomatis.correctly_predicted_neg }}</p></div>
+                                <div class="col-4"><p class="mb-0 font-weight-bold text-secondary">Netral</p><p class="h4">{{ otomatis.correctly_predicted_neu }}</p></div>
+                            </div>
+
+                            <div class="alert alert-light text-center mt-auto pt-3">
+                                <p class="mb-1" style="font-size: 1.1rem;">Berdasarkan kategori prediksi benar terbanyak, sentimen cenderung <strong class="highlight-text">{{ otomatis.dominant_sentiment }}</strong>.</p>
+                            </div>
+                        {% else %}
+                             <div class="alert alert-warning text-center my-auto"><i class="fas fa-exclamation-triangle mr-2"></i>Belum ada hasil klasifikasi dari sumber "Label Otomatis".</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
